@@ -1,0 +1,5 @@
+discord.py>=2.3.2
+python-dotenv>=1.0.0
+# Optional — only needed for webhook_stripe.py (payment integration)
+Flask>=3.0.0
+stripe>=8.0.0
