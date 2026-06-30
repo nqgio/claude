@@ -1,5 +1,6 @@
 discord.py>=2.3.2
 python-dotenv>=1.0.0
-# Optional — only needed for webhook_stripe.py (payment integration)
+# Needed for the Whop webhook (webhook_whop.py) — recommended paid integration.
 Flask>=3.0.0
+# Optional — only needed for the Stripe alternative (webhook_stripe.py).
 stripe>=8.0.0

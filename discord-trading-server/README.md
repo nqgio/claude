@@ -1,10 +1,14 @@
-# 📈 Trading Community Discord — Server-as-Code
+# 📈 Bullpen Trading Club — Discord Server-as-Code
 
 A complete, ready-to-deploy Discord server for a trading community, built
 programmatically. One script builds every **role**, **category**, **channel**,
-and **permission**; a runtime bot handles **verification**, **self-assignable
-notification roles**, and **free vs. paid access** (with optional Stripe
-integration).
+and **permission**; a runtime bot handles a **button verification gate**,
+**self-assignable notification roles**, and **free vs. paid access**, with
+**Whop** wired up so purchases auto-assign Discord roles.
+
+> **Name:** the community is called **Bullpen Trading Club**. Change it in one
+> place — `SERVER_NAME` in `config.py` — and it updates across welcome
+> messages, the verify card, and the upgrade card.
 
 You can't literally "download" a Discord server, so this is the next best
 thing: code that constructs the entire server in your own guild and a bot that
@@ -73,7 +77,8 @@ python setup_server.py --wipe
 python bot.py
 ```
 Then, in any channel, as an admin run:
-- `/post_verify` — posts the verify message in **#verify**
+- `/post_verify` — posts the **verification gate** (button) + Whop link in **#verify**
+- `/post_upgrade` — posts the Whop pricing card in **#how-to-upgrade**
 - `/post_selfroles` — posts the notification-role menu in **#self-roles**
 
 Finally paste the starter copy from [`content/channel_messages.md`](content/channel_messages.md)
@@ -81,11 +86,33 @@ into the matching channels.
 
 ---
 
+## Verification & access flow
+
+```
+New member joins ──> auto-assigned "Unverified" (sees only #verify)
+        │
+        ├── clicks ✅ Verify & Enter  ─────────────> "Member"  (FREE access)
+        │
+        └── buys a plan on Whop ──> Whop webhook ──> data/subscriptions.json
+                                                          │
+                                    bot sync loop (~2 min) assigns the paid role
+                                                          │
+                                              Premium / Elite / Lifetime VIP
+```
+
+- **Free** members get the community + free signals after one click.
+- **Paid** access is sold and verified through **Whop** — no manual role
+  handling. Cancellations / refunds fire `membership.went_invalid`, and the bot
+  removes the role automatically.
+
+---
+
 ## Managing access
 
 ### Free access
-New members get **Unverified** automatically and only see **#verify**. Reacting
-✅ there swaps them to **Member** — the free tier.
+New members get **Unverified** automatically and only see **#verify**. Clicking
+the **✅ Verify & Enter** button there swaps them to **Member** — the free tier.
+The button is a persistent component, so it keeps working across bot restarts.
 
 ### Paid access
 Admin slash commands (require **Manage Server**):
@@ -99,16 +126,32 @@ Admin slash commands (require **Manage Server**):
 Subscriptions are tracked in `data/subscriptions.json`. A background task runs
 every 6 hours and auto-removes expired tiers, logging to **#payment-log**.
 
-### Automated payments (optional)
-`webhook_stripe.py` is a reference Flask endpoint that converts Stripe checkout
-events into tier grants:
-1. Map your real Stripe Price IDs in `PRICE_TIERS`.
-2. Pass the buyer's Discord ID as `client_reference_id` in Checkout.
-3. Deploy the endpoint and register it as a Stripe webhook for
-   `checkout.session.completed` and `customer.subscription.deleted`.
+### Automated payments via Whop (recommended)
+`webhook_whop.py` is a Flask endpoint that turns Whop membership events into
+Discord roles — no manual granting.
 
-It writes the same `subscriptions.json` the bot reads. (Works the same way for
-Whop, Gumroad, etc. — just adapt the webhook handler.)
+1. In **`config.py`**, fill `WHOP_PLAN_TIERS` with your Whop plan IDs →
+   tiers, and set `WHOP_STORE_URL` to your storefront link.
+2. Enable Whop's **Discord integration** on your product so buyers connect
+   their Discord (the membership payload then carries `data.discord.id`).
+3. Set `WHOP_WEBHOOK_SECRET` in `.env`.
+4. Deploy the endpoint (e.g. `https://yourhost/whop/webhook`) and register it
+   in **Whop → Developer → Webhooks** for `membership.went_valid` and
+   `membership.went_invalid`.
+
+The webhook writes `data/subscriptions.json`; the bot's sync loop applies the
+role within ~2 minutes and removes it when a membership goes invalid
+(cancel / refund / failed renewal).
+
+> Whop API field names and signature scheme can vary by version — the handler
+> follows the common shape and is commented for easy adjustment. See
+> <https://docs.whop.com>.
+
+### Stripe alternative (optional)
+Prefer Stripe? `webhook_stripe.py` does the same job: map your Price IDs in
+`PRICE_TIERS`, pass the buyer's Discord ID as `client_reference_id`, and
+register the endpoint for `checkout.session.completed` /
+`customer.subscription.deleted`. It writes the same `subscriptions.json`.
 
 ---
 
@@ -121,10 +164,11 @@ you rarely need to touch them.
 ## Files
 | File | Purpose |
 |------|---------|
-| `config.py` | All roles, categories, channels & permission rules |
+| `config.py` | Name, all roles, categories, channels, permissions & Whop plan map |
 | `setup_server.py` | Builds the server from config (idempotent; `--wipe` option) |
-| `bot.py` | Runtime: verify, self-roles, premium grant/revoke/expiry |
-| `webhook_stripe.py` | Optional Stripe → tier-grant webhook |
+| `bot.py` | Runtime: button verification, self-roles, tier sync/grant/revoke |
+| `webhook_whop.py` | **Whop → Discord role** webhook (recommended paid integration) |
+| `webhook_stripe.py` | Optional Stripe → tier-grant webhook (alternative) |
 | `content/channel_messages.md` | Copy-paste welcome/rules/faq/upgrade text |
 
 ---

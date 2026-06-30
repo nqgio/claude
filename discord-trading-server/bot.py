@@ -66,6 +66,39 @@ def save_subs(subs):
     SUBS_FILE.write_text(json.dumps(subs, indent=2))
 
 
+# ---------------------------------------------------------------------------
+# Verification UI — a persistent button gate (survives bot restarts).
+# ---------------------------------------------------------------------------
+class VerifyView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)  # persistent
+
+    @discord.ui.button(label="✅ Verify & Enter", style=discord.ButtonStyle.success,
+                       custom_id="bullpen_verify")
+    async def verify(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild, member = interaction.guild, interaction.user
+        member_role = discord.utils.get(guild.roles, name=config.ROLE_MEMBER)
+        unverified = discord.utils.get(guild.roles, name=config.ROLE_UNVERIFIED)
+        if member_role and member_role not in member.roles:
+            await member.add_roles(member_role, reason="Verified via button")
+        if unverified and unverified in member.roles:
+            await member.remove_roles(unverified, reason="Verified via button")
+        await interaction.response.send_message(
+            f"✅ You're verified — welcome to **{config.SERVER_NAME}**!\n"
+            f"Grab your notification pings in **#self-roles**, and check "
+            f"**#how-to-upgrade** for full Premium access via Whop. 💎",
+            ephemeral=True)
+
+
+def upgrade_view():
+    """Link buttons to the Whop storefront (used in verify / upgrade posts)."""
+    view = discord.ui.View(timeout=None)
+    view.add_item(discord.ui.Button(
+        label="💎 Get Premium on Whop", style=discord.ButtonStyle.link,
+        url=config.WHOP_STORE_URL))
+    return view
+
+
 class TradingBot(discord.Client):
     def __init__(self):
         super().__init__(intents=intents)
@@ -73,13 +106,14 @@ class TradingBot(discord.Client):
         self.subs = load_subs()
 
     async def setup_hook(self):
+        self.add_view(VerifyView())  # register persistent view
         if GUILD_ID:
             guild = discord.Object(id=GUILD_ID)
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
         else:
             await self.tree.sync()
-        self.expiry_check.start()
+        self.sync_subscriptions.start()
 
     # ----- helpers --------------------------------------------------------
     def role(self, guild, name):
@@ -128,24 +162,58 @@ class TradingBot(discord.Client):
                 guild, f"🚫 **{member}** lost {', '.join(removed)} ({reason}).")
         return removed
 
-    # ----- background expiry ---------------------------------------------
-    @tasks.loop(hours=6)
-    async def expiry_check(self):
+    # ----- background reconcile ------------------------------------------
+    @tasks.loop(minutes=2)
+    async def sync_subscriptions(self):
+        """
+        Reconcile Discord roles with the subscription store every couple of
+        minutes. This is what makes the Whop / Stripe webhooks effective: they
+        write data/subscriptions.json, and this loop applies the changes —
+        granting roles for new memberships, fixing tier changes, and removing
+        roles for expired or cancelled (Whop "invalid") memberships.
+        """
         await self.wait_until_ready()
+        self.subs = load_subs()  # pick up webhook-written changes
         now = datetime.now(timezone.utc)
-        for gid, members in list(self.subs.items()):
-            guild = self.get_guild(int(gid))
-            if not guild:
-                continue
-            for uid, info in list(members.items()):
+
+        for guild in self.guilds:
+            gid = str(guild.id)
+            paid = {t: self.role(guild, t) for t in config.PAID_ROLES}
+            member_role = self.role(guild, config.ROLE_MEMBER)
+
+            # Build desired tier per user, dropping expired entries.
+            desired = {}
+            changed = False
+            for uid, info in list(self.subs.get(gid, {}).items()):
                 exp = info.get("expires")
-                if not exp:
+                if exp and datetime.fromisoformat(exp) <= now:
+                    self.subs[gid].pop(uid, None)
+                    changed = True
                     continue
-                if datetime.fromisoformat(exp) <= now:
-                    member = guild.get_member(int(uid))
-                    if member:
-                        await self.revoke_tiers(guild, member,
-                                                reason="Subscription expired")
+                desired[uid] = info["tier"]
+            if changed:
+                save_subs(self.subs)
+
+            for member in guild.members:
+                if member.bot:
+                    continue
+                want = desired.get(str(member.id))
+                has = [t for t in config.PAID_ROLES if paid[t] and paid[t] in member.roles]
+
+                if want:
+                    for t in has:                      # strip wrong tiers
+                        if t != want:
+                            await member.remove_roles(paid[t], reason="Tier change")
+                    if want not in has and paid.get(want):
+                        await member.add_roles(paid[want], reason="Membership active")
+                        if member_role and member_role not in member.roles:
+                            await member.add_roles(member_role, reason="Base access")
+                        await self.log_payment(guild, f"✅ **{member}** → **{want}** (synced).")
+                elif has:                              # no active membership
+                    for t in has:
+                        await member.remove_roles(paid[t], reason="No active membership")
+                    await self.log_payment(
+                        guild, f"🚫 **{member}** lost {', '.join(has)} (membership ended).")
 
 
 bot = TradingBot()
@@ -168,8 +236,9 @@ async def on_member_join(member):
     welcome = discord.utils.get(member.guild.text_channels, name="welcome")
     if welcome:
         await welcome.send(
-            f"👋 Welcome {member.mention}! Head to **#verify** to unlock the "
-            f"server, then check **#how-to-upgrade** for Premium access.")
+            f"👋 Welcome to **{config.SERVER_NAME}**, {member.mention}! "
+            f"Head to **#verify** to unlock the server, then check "
+            f"**#how-to-upgrade** for full Premium access via Whop.")
 
 
 @bot.event
@@ -277,15 +346,51 @@ async def post_verify(interaction: discord.Interaction):
         await interaction.response.send_message("No #verify channel found.", ephemeral=True)
         return
     embed = discord.Embed(
-        title="✅ Verify to unlock the server",
-        description=(f"React with {VERIFY_EMOJI} below to confirm you've read the "
-                     f"**#rules** and gain access to the community.\n\n"
-                     f"By verifying you agree these signals are **educational, not "
-                     f"financial advice**. Trade at your own risk."),
-        colour=0x2ECC71)
-    msg = await ch.send(embed=embed)
-    await msg.add_reaction(VERIFY_EMOJI)
-    await interaction.response.send_message("Posted verify message.", ephemeral=True)
+        title=f"✅ Verify to enter {config.SERVER_NAME}",
+        description=(
+            "Click **Verify & Enter** below to confirm you've read the **#rules** "
+            "and unlock the community (free access).\n\n"
+            "**Want full signals, live trading & the analyst desk?**\n"
+            "Premium access is sold and verified through **Whop** — tap "
+            "*Get Premium on Whop*. Your role is assigned automatically after "
+            "purchase.\n\n"
+            "_By verifying you agree these signals are **educational, not financial "
+            "advice**. Trade at your own risk._"),
+        colour=config.BRAND_COLOR)
+    embed.set_footer(text=config.SERVER_TAGLINE)
+
+    view = VerifyView()
+    view.add_item(discord.ui.Button(
+        label="💎 Get Premium on Whop", style=discord.ButtonStyle.link,
+        url=config.WHOP_STORE_URL))
+    await ch.send(embed=embed, view=view)
+    await interaction.response.send_message("Posted verify section.", ephemeral=True)
+
+
+@bot.tree.command(description="Post the Whop upgrade card in #how-to-upgrade.")
+@admin_only()
+async def post_upgrade(interaction: discord.Interaction):
+    ch = discord.utils.get(interaction.guild.text_channels, name="how-to-upgrade")
+    if not ch:
+        await interaction.response.send_message(
+            "No #how-to-upgrade channel found.", ephemeral=True)
+        return
+    embed = discord.Embed(
+        title="💎 Unlock Premium Access",
+        description=(
+            "All paid access runs through **Whop** — secure checkout, instant "
+            "Discord role, manage or cancel anytime.\n\n"
+            f"**💚 {config.ROLE_PREMIUM}** — full signals (crypto · forex · "
+            "stocks/options), premium chat, education & trade journal.\n"
+            f"**🧡 {config.ROLE_ELITE}** — everything in Premium **plus** live "
+            "trading, the analyst desk & 1:1 portfolio reviews.\n"
+            f"**💜 {config.ROLE_LIFETIME}** — Elite access, forever. One payment.\n\n"
+            "Tap the button to choose your plan. Access is granted automatically "
+            "after checkout — issues? Open a ticket in **#support-tickets**."),
+        colour=config.BRAND_COLOR)
+    embed.set_footer(text=f"{config.SERVER_NAME} • {config.SERVER_TAGLINE}")
+    await ch.send(embed=embed, view=upgrade_view())
+    await interaction.response.send_message("Posted upgrade card.", ephemeral=True)
 
 
 @bot.tree.command(description="Post the self-roles menu in #self-roles.")
@@ -310,6 +415,7 @@ async def post_selfroles(interaction: discord.Interaction):
 @revoke.error
 @whois.error
 @post_verify.error
+@post_upgrade.error
 @post_selfroles.error
 async def on_app_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.MissingPermissions):

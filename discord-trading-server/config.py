@@ -10,6 +10,14 @@ script reproduces this exact order in the server's role list.
 """
 
 # ---------------------------------------------------------------------------
+# Branding — change this to rename the community everywhere (embeds, welcome
+# messages, etc.). The Discord server's own name is set in Server Settings.
+# ---------------------------------------------------------------------------
+SERVER_NAME = "Bullpen Trading Club"
+SERVER_TAGLINE = "Real setups. Real education. No fluff."
+BRAND_COLOR = 0x16A34A  # green
+
+# ---------------------------------------------------------------------------
 # Tier role names — referenced by the bot at runtime, so keep them in sync
 # with the ROLES list below.
 # ---------------------------------------------------------------------------
@@ -89,6 +97,25 @@ STAFF_ROLES = ["Owner", "Admin", "Moderator", "Support"]
 ANALYST_ROLES = ["Head Analyst", "Analyst"]
 PAID_ROLES = [ROLE_PREMIUM, ROLE_ELITE, ROLE_LIFETIME]
 ELITE_ROLES = [ROLE_ELITE, ROLE_LIFETIME]
+
+# ---------------------------------------------------------------------------
+# WHOP — paid access is sold and verified through Whop (whop.com), the
+# membership platform most trading communities use. Map each Whop *plan_id*
+# (or product_id) to a tier + duration in days (None = no expiry / Whop
+# manages the renewal lifecycle for subscriptions).
+#
+# Find these IDs in your Whop dashboard under each plan. The Whop webhook
+# (webhook_whop.py) uses this table to assign the right Discord role on
+# purchase and remove it when a membership goes invalid.
+# ---------------------------------------------------------------------------
+WHOP_PLAN_TIERS = {
+    "plan_REPLACE_premium":  (ROLE_PREMIUM, None),
+    "plan_REPLACE_elite":    (ROLE_ELITE, None),
+    "plan_REPLACE_lifetime": (ROLE_LIFETIME, None),
+}
+
+# Public Whop storefront link shown in the verify / upgrade channels.
+WHOP_STORE_URL = "https://whop.com/your-store"
 
 # ---------------------------------------------------------------------------
 # CHANNELS

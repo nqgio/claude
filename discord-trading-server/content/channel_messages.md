@@ -1,13 +1,17 @@
 # Ready-to-paste channel content
 
-Copy these into the matching channels after setup. Replace `[Server Name]`,
-prices, and links with your own.
+Copy these into the matching channels after setup. Replace prices and links
+with your own. The community name is **Bullpen Trading Club** (set by
+`SERVER_NAME` in `config.py`).
+
+> Tip: `#verify`, `#how-to-upgrade`, and `#self-roles` are posted automatically
+> by the bot via `/post_verify`, `/post_upgrade`, and `/post_selfroles`.
 
 ---
 
 ## #welcome
 
-> # 📈 Welcome to [Server Name]
+> # 📈 Welcome to Bullpen Trading Club
 > The home for traders who want real setups, real education, and a community
 > that actually shows its work.
 >
@@ -65,8 +69,12 @@ prices, and links with your own.
 ---
 
 ## #how-to-upgrade
+The bot posts a Whop upgrade card automatically — run `/post_upgrade`. Reference
+copy:
 
 > # 💎 Unlock Premium Access
+>
+> All paid access runs through **Whop** — secure checkout, instant Discord role.
 >
 > | Tier | Price | What you get |
 > |------|-------|--------------|
@@ -74,10 +82,10 @@ prices, and links with your own.
 > | **Elite** | $XX / mo | Everything in Premium **+** live trading, analyst desk, 1:1 portfolio reviews, elite lounge |
 > | **Lifetime VIP** | $XXX once | Elite access, forever. No recurring fees. |
 >
-> **👉 Upgrade here: [your-checkout-link]**
+> **👉 Choose your plan: https://whop.com/your-store**
 >
-> Access is granted automatically after checkout. Issues? Open a ticket in
-> **#support-tickets**.
+> Your Discord role is assigned automatically after checkout (connect your
+> Discord on Whop). Issues? Open a ticket in **#support-tickets**.
 
 ---
 
