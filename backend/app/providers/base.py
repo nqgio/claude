@@ -90,7 +90,7 @@ class ProductProvider(ABC):
     def get_tracking(self, order_id: str, profile: str | None = None) -> TrackingInfo | None:
         return None
 
-    def open_login_browser(self, profile: str | None = None, label: str = "") -> str:
+    def open_login_browser(self, profile: str | None = None, label: str = "", on_done=None) -> str:
         return f"{self.name} has no browser login"
 
     def check_login(self, profile: str | None = None) -> bool:

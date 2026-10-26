@@ -71,6 +71,17 @@ def resume(message: str) -> None:
     activity.info("amazon", message)
 
 
+# Cookies Amazon sets only for a signed-in session ("Keep me signed in" makes them persist).
+AUTH_COOKIES = {"at-main", "sess-at-main"}
+
+
+def has_auth_cookie(ctx) -> bool:
+    try:
+        return any(c.get("name") in AUTH_COOKIES and c.get("value") for c in ctx.cookies(["https://www.amazon.com"]))
+    except Exception:
+        return False
+
+
 class _Pacer:
     def __init__(self):
         self.recent: deque[float] = deque()
@@ -199,23 +210,36 @@ class AmazonPlaywrightProvider(ProductProvider):
             raise ProviderError(f"{asin}: {exc}") from exc
 
     # ---- login ---------------------------------------------------------------
-    def open_login_browser(self, profile: str | None = None, label: str = "Amazon") -> str:
+    def open_login_browser(self, profile: str | None = None, label: str = "Amazon", on_done=None) -> str:
+        """Show the account's browser so the person signs in. When the window closes, `on_done(logged_in)`
+        is called with whether Amazon's sign-in cookies are present."""
         def _open():
             self._use(profile)
             ctx = self._context(headless=False)
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(f"{BASE}/gp/sign-in.html")
-            activity.info("amazon", f"Opened the login window for {label}. Log in, then close the window.")
+            try:
+                page.goto(f"{BASE}/gp/sign-in.html")
+            except Exception:
+                pass
+            activity.info("amazon", f"Opened the login window for {label}. Log in (tick “Keep me signed in”), then close the window.")
+            logged = has_auth_cookie(ctx)
             deadline = time.time() + 20 * 60
             while time.time() < deadline:
                 try:
                     if not ctx.pages:
                         break
+                    logged = has_auth_cookie(ctx)
                     ctx.pages[0].wait_for_timeout(2000)
                 except Exception:
                     break
             self._close_ctx()
-            activity.info("amazon", f"Login window for {label} closed; login saved")
+            if logged:
+                activity.info("amazon", f"Login window for {label} closed — {label} is logged in")
+            else:
+                activity.warning("amazon", f"Login window for {label} closed, but it isn't signed in to Amazon. "
+                                           "Click Log in again and finish signing in before closing the window.")
+            if on_done:
+                on_done(logged)
             return "closed"
 
         self._executor.submit(_open)
@@ -267,9 +291,11 @@ class AmazonPlaywrightProvider(ProductProvider):
         return not re.search(r"Hello,\s*sign in", html, re.I)
 
     def check_login(self, profile: str | None = None) -> bool:
+        """Logged in = the profile holds Amazon's sign-in cookies. No page is loaded, so this never
+        triggers a CAPTCHA and works while Amazon jobs are paused."""
         def _check():
             self._use(profile)
-            return self._logged_in(self._goto(f"{BASE}/gp/css/homepage.html"))
+            return has_auth_cookie(self._context())
 
         return self._run(_check, timeout=10 * 60)
 

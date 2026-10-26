@@ -239,8 +239,10 @@ def login_amazon_account(aid: int):
     a = accounts.get(aid)
     if not a:
         raise HTTPException(404, "account not found")
-    get_provider("amazon_playwright").open_login_browser(a.profile_dir, a.name)
-    return {"message": f"A browser window opened on this PC for {a.name}. Log in, tick 'Keep me signed in', then close it."}
+    get_provider("amazon_playwright").open_login_browser(a.profile_dir, a.name,
+                                                         on_done=lambda ok: accounts.set_login_state(aid, ok))
+    return {"message": f"A browser window opened on this PC for {a.name}. Log in, tick 'Keep me signed in', then close it — "
+                       "the status updates when the window closes."}
 
 
 @router.post("/amazon/accounts/{aid}/check")
@@ -252,7 +254,8 @@ def check_amazon_account(aid: int):
     def run():
         ok = get_provider("amazon_playwright").check_login(a.profile_dir)
         accounts.set_login_state(aid, ok)
-        (activity.info if ok else activity.warning)("amazon", f"{a.name}: {'logged in' if ok else 'NOT logged in — use Log in'}")
+        (activity.info if ok else activity.warning)(
+            "amazon", f"{a.name}: {'logged in' if ok else 'NOT logged in — click Log in, sign in with “Keep me signed in” ticked, then close the window'}")
 
     scheduler.run_task(f"Check login for {a.name}", run)
     return {"message": f"Checking {a.name}… the status updates in a few seconds."}
