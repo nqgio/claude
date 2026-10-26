@@ -126,6 +126,7 @@ function Sidebar({ status, onNavigate }) {
           </div>
         )}
         <ThemeToggle />
+        {status?.version && <div className="text-center text-[11px] text-ink-3">Version {status.version}</div>}
       </div>
     </div>
   );

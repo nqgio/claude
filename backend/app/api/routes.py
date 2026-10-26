@@ -51,7 +51,7 @@ def status():
 
     paused = bool(until and until > datetime.now(timezone.utc))
     return {
-        "dry_run": st.get("dry_run"), "environment": env, "checkout_mode": st.get("checkout_mode"),
+        "version": config.APP_VERSION, "dry_run": st.get("dry_run"), "environment": env, "checkout_mode": st.get("checkout_mode"),
         "kill_switch": st.get("auto_buy_kill_switch"), "product_source": st.get("product_source"),
         "ebay": {"keys_present": bool(k["app_id"] and k["cert_id"]), "runame_present": bool(k["runame"]),
                  "connected": bool(k["refresh_token"]),

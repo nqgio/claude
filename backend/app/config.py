@@ -11,6 +11,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv, set_key
 
+APP_VERSION = "1.5"  # shown at the bottom of the dashboard sidebar
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BACKEND_DIR.parent
 ENV_FILE = Path(os.environ.get("APP_ENV_FILE", PROJECT_DIR / ".env"))

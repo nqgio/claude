@@ -9,13 +9,14 @@ echo    Listing Automation  -  Amazon to eBay
 echo  ==============================================
 echo.
 
-rem --- Already running? Just open the dashboard. ------------------------------
+rem --- Already running? Stop it, so this folder's (possibly newer) version starts. ---
 curl -s -o nul http://127.0.0.1:8000/api/status >nul 2>&1
 if not errorlevel 1 (
-  echo  The app is already running. Opening the dashboard...
-  start "" http://localhost:8000
+  echo  The app is already running - restarting it with this version...
+  schtasks /end /tn EbayListingAutomation >nul 2>&1
+  for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8000 " ^| findstr LISTENING') do taskkill /pid %%p /f >nul 2>&1
+  for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8001 " ^| findstr LISTENING') do taskkill /pid %%p /f >nul 2>&1
   timeout /t 3 >nul
-  exit /b 0
 )
 
 rem --- Find Python 3.11 or newer, install it if missing. ----------------------

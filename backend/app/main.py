@@ -47,11 +47,12 @@ def create_app(start_scheduler: bool = True) -> FastAPI:
         if path.startswith("api/"):
             return HTMLResponse("Not found", 404)
         f = dist / path
-        if path and f.is_file():
+        if path and f.is_file() and f.name != "index.html":
             return FileResponse(f)
         index = dist / "index.html"
         if index.exists():
-            return FileResponse(index)
+            # Never cache the page shell, so an updated dashboard shows up right away.
+            return FileResponse(index, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
         return HTMLResponse("<h3>Dashboard not built yet.</h3><p>Run <code>npm install && npm run build</code> in "
                             "the <code>frontend</code> folder (the setup script does this).</p>")
 
