@@ -1,10 +1,99 @@
 @import "tailwindcss";
 
-@layer base {
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  input, select, textarea {
-    @apply rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900;
-  }
-  input[type="checkbox"] { @apply h-4 w-4 p-0; }
-  th { @apply text-left font-medium; }
+/* Theme is driven by a `.dark` class on <html> (set by src/theme.jsx). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-ink: var(--c-ink);
+  --color-ink-2: var(--c-ink-2);
+  --color-ink-3: var(--c-ink-3);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-ink: var(--c-accent-ink);
 }
+
+:root {
+  color-scheme: light;
+  --c-canvas: #f5f6f8;
+  --c-surface: #ffffff;
+  --c-surface-2: #f9fafb;
+  --c-surface-3: #f1f3f6;
+  --c-line: #e6e8ec;
+  --c-line-strong: #d3d7de;
+  --c-ink: #0e1420;
+  --c-ink-2: #4b5565;
+  --c-ink-3: #8a93a3;
+  --c-accent: #4f46e5;
+  --c-accent-hover: #4338ca;
+  --c-accent-soft: #eef0ff;
+  --c-accent-ink: #3f37c9;
+  /* chart tokens (validated reference palette, light steps) */
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eb6834;
+  --chart-grid: #eceef2;
+  --chart-axis: #8a93a3;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.04);
+}
+
+.dark {
+  color-scheme: dark;
+  --c-canvas: #0a0c11;
+  --c-surface: #11141b;
+  --c-surface-2: #151922;
+  --c-surface-3: #1b202b;
+  --c-line: #222836;
+  --c-line-strong: #2e3546;
+  --c-ink: #e8ebf1;
+  --c-ink-2: #a5aec0;
+  --c-ink-3: #6b7489;
+  --c-accent: #6366f1;
+  --c-accent-hover: #7c7ff5;
+  --c-accent-soft: #1d1f3b;
+  --c-accent-ink: #a5a8ff;
+  /* chart tokens (validated reference palette, dark steps) */
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #d95926;
+  --chart-grid: #1e2330;
+  --chart-axis: #6b7489;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+@layer base {
+  html { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-canvas text-ink text-sm; }
+  ::selection { background: var(--c-accent-soft); }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea {
+    @apply h-9 rounded-lg border border-line bg-surface px-3 text-sm text-ink shadow-xs outline-none transition
+      placeholder:text-ink-3 focus:border-accent focus:ring-4 focus:ring-accent/15;
+  }
+  textarea { @apply h-auto py-2; }
+  select { @apply pr-8; }
+  input[type="checkbox"] { @apply h-4 w-4 rounded border-line-strong accent-[var(--c-accent)]; }
+  input[type="date"], input[type="time"] { color-scheme: inherit; }
+  *:focus-visible { outline: none; }
+  button:focus-visible, a:focus-visible { @apply ring-2 ring-accent/40 ring-offset-2 ring-offset-canvas; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--c-line-strong); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+}
+
+@layer components {
+  .card { background: var(--c-surface); box-shadow: var(--shadow-card); @apply rounded-xl border border-line; }
+  .tnum { font-variant-numeric: tabular-nums; }
+}
+
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pop-in { from { transform: translateY(6px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.anim-slide { animation: slide-in .22s cubic-bezier(.2,.8,.2,1); }
+.anim-pop { animation: pop-in .18s cubic-bezier(.2,.8,.2,1); }
+.anim-fade { animation: fade-in .18s ease-out; }

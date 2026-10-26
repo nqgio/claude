@@ -6,7 +6,12 @@ A local app that runs 24/7 on your PC. It finds products on Amazon, lists them o
 - **Sandbox first.** You can test against eBay's sandbox (test site), then switch to your real store with one setting.
 - Every setting is on the **Settings** page. You never need to edit code.
 
-![Queue](docs/screenshots/queue.png)
+| Light | Dark |
+|---|---|
+| ![Overview, light](docs/screenshots/overview-light.png) | ![Overview, dark](docs/screenshots/overview-dark.png) |
+| ![Order panel](docs/screenshots/order-drawer-light.png) | ![Listing detail](docs/screenshots/listing-detail-dark.png) |
+
+Switch between light, dark and "match system" at the bottom of the sidebar (or Settings → Appearance).
 
 ---
 
