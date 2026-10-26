@@ -18,7 +18,7 @@ from ..models import ActivityLog, BlocklistEntry, Listing, Order, PriceHistory, 
 from ..pricing import calculate
 from ..providers import get_provider
 from ..providers.amazon_playwright import paused_until
-from ..services import listing_ops, metrics, orders, queue, refresh, scheduler
+from ..services import accounts, listing_ops, metrics, orders, queue, refresh, scheduler
 from ..services.evaluate import pricing_params
 
 router = APIRouter(prefix="/api")
@@ -58,7 +58,8 @@ def status():
                  "refresh_token_expires": (st.get("ebay_refresh_token_expires") or {}).get(env)},
         "amazon": {"status": "paused" if paused else "ok", "paused_until": until.isoformat() if paused else None,
                    "reason": st.get("amazon_pause_reason") if paused else "",
-                   "profile_exists": config.AMAZON_PROFILE_DIR.exists()},
+                   "accounts": len(accounts.list_accounts()),
+                   "accounts_logged_in": sum(1 for a in accounts.list_accounts() if a["logged_in"])},
         "ai_key_present": bool(config.env("ANTHROPIC_API_KEY")),
         "deletion_endpoint_configured": bool(config.env("EBAY_VERIFICATION_TOKEN") and config.env("EBAY_DELETION_ENDPOINT_URL")),
         "jobs": scheduler.status(),
@@ -156,9 +157,62 @@ def ebay_opt_in():
 
 # ---- Amazon ------------------------------------------------------------------------------------------
 
-@router.post("/amazon/login-browser")
-def amazon_login():
-    return {"status": get_provider("amazon_playwright").open_login_browser()}
+# ---- Amazon accounts -------------------------------------------------------------------------------
+
+@router.get("/amazon/accounts")
+def list_amazon_accounts():
+    nxt, why = accounts.pick_next()
+    return {"accounts": accounts.list_accounts(), "next_account_id": nxt.id if nxt else None, "next_reason": why,
+            "rotation": st.get("amazon_rotation")}
+
+
+class AccountBody(BaseModel):
+    name: str = ""
+
+
+@router.post("/amazon/accounts")
+def add_amazon_account(body: AccountBody):
+    return accounts.create(body.name)
+
+
+@router.patch("/amazon/accounts/{aid}")
+def edit_amazon_account(aid: int, values: dict):
+    try:
+        return accounts.update(aid, values)
+    except KeyError:
+        raise HTTPException(404, "account not found")
+    except (TypeError, ValueError) as exc:
+        _err(exc)
+
+
+@router.delete("/amazon/accounts/{aid}")
+def remove_amazon_account(aid: int):
+    accounts.delete(aid)
+    return {"ok": True}
+
+
+@router.post("/amazon/accounts/{aid}/login")
+def login_amazon_account(aid: int):
+    a = accounts.get(aid)
+    if not a:
+        raise HTTPException(404, "account not found")
+    get_provider("amazon_playwright").open_login_browser(a.profile_dir, a.name)
+    return {"message": f"A browser window opened on this PC for {a.name}. Log in, tick 'Keep me signed in', then close it."}
+
+
+@router.post("/amazon/accounts/{aid}/check")
+def check_amazon_account(aid: int):
+    a = accounts.get(aid)
+    if not a:
+        raise HTTPException(404, "account not found")
+
+    def run():
+        ok = get_provider("amazon_playwright").check_login(a.profile_dir)
+        accounts.set_login_state(aid, ok)
+        (activity.info if ok else activity.warning)("amazon", f"{a.name}: {'logged in' if ok else 'NOT logged in — use Log in'}")
+
+    scheduler.run_task(f"Check login for {a.name}", run)
+    return {"message": f"Checking {a.name}… the status updates in a few seconds."}
 
 
 @router.post("/amazon/resume")
@@ -339,11 +393,13 @@ def get_order(oid: int):
 class PurchaseBody(BaseModel):
     amazon_order_id: str = ""
     amazon_cost: float | None = None
+    amazon_account_id: int | None = None
 
 
 @router.post("/orders/{oid}/purchase")
 def order_purchased(oid: int, body: PurchaseBody):
-    orders.mark_purchased(oid, body.amazon_order_id, body.amazon_cost, " — entered on dashboard")
+    orders.mark_purchased(oid, body.amazon_order_id, body.amazon_cost, " — entered on dashboard",
+                          amazon_account_id=body.amazon_account_id)
     return get_order(oid)
 
 

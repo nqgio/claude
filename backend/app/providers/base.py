@@ -83,14 +83,18 @@ class ProductProvider(ABC):
         return f"https://www.amazon.com/dp/{asin}"
 
     # Optional order-side capabilities (auto checkout / tracking). Default: unsupported.
-    def place_order(self, asin: str, quantity: int, address: dict, guard) -> PurchaseResult:
+    # `profile` = the buying account's browser profile directory.
+    def place_order(self, asin: str, quantity: int, address: dict, guard, profile: str | None = None) -> PurchaseResult:
         return PurchaseResult(ok=False, message=f"{self.name} does not support automatic checkout")
 
-    def get_tracking(self, order_id: str) -> TrackingInfo | None:
+    def get_tracking(self, order_id: str, profile: str | None = None) -> TrackingInfo | None:
         return None
 
-    def open_login_browser(self) -> str:
+    def open_login_browser(self, profile: str | None = None, label: str = "") -> str:
         return f"{self.name} has no browser login"
+
+    def check_login(self, profile: str | None = None) -> bool:
+        raise ProviderError(f"{self.name} has no browser login")
 
     def close(self) -> None:
         pass

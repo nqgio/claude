@@ -12,7 +12,7 @@ from ..models import Listing, Order, utcnow
 from ..pricing import _d
 from ..providers import get_provider
 from ..providers.base import ProviderError, SourceBlocked, SourcePaused
-from . import carriers, products
+from . import accounts, carriers, products
 from .evaluate import pricing_params
 
 STATUS_ORDER = ["awaiting_purchase", "purchased", "shipped", "tracking_uploaded", "delivered"]
@@ -184,18 +184,25 @@ def _flag(order_id: int, flag: str, reason: str) -> None:
     activity.warning("order", f"Order #{order_id} flagged ({flag}): {reason}", order_id=order_id)
 
 
-def mark_purchased(order_id: int, amazon_order_id: str, amazon_cost: float | None, note: str = "") -> None:
+def mark_purchased(order_id: int, amazon_order_id: str, amazon_cost: float | None, note: str = "",
+                   amazon_account_id: int | None = None) -> None:
     with session_scope() as s:
         o = s.get(Order, order_id)
         o.amazon_order_id = amazon_order_id.strip()
+        if amazon_account_id is not None:
+            o.amazon_account_id = amazon_account_id
         if amazon_cost is not None:
             o.amazon_cost = round(float(amazon_cost), 2)
         o.purchased_at = o.purchased_at or utcnow()
         _advance(o, "purchased")
         if o.flag == "needs_attention":
             o.flag, o.flag_reason = "", ""
+    acct = accounts.get(amazon_account_id)
+    if acct:
+        accounts.mark_used(acct.id)
     activity.info("order", f"Order #{order_id} purchased on Amazon ({amazon_order_id or 'no order #'}"
-                           f"{f', paid ${amazon_cost:.2f}' if amazon_cost is not None else ''}){note}", order_id=order_id)
+                           f"{f', paid ${amazon_cost:.2f}' if amazon_cost is not None else ''}"
+                           f"{f', account {acct.name}' if acct else ''}){note}", order_id=order_id)
 
 
 def auto_buy_count_today() -> int:
@@ -266,23 +273,39 @@ def auto_buy(order_id: int) -> dict:
     if not ok:
         _flag(order_id, "needs_attention", f"auto-buy blocked: {why}")
         return {"ok": False, "message": why}
+    account, no_acct = accounts.pick_next(est_cost)
+    if account is None:
+        _flag(order_id, "needs_attention", f"auto-buy blocked: {no_acct}")
+        return {"ok": False, "message": no_acct}
+    acct_cap = account.max_spend_per_day
+    acct_spent = accounts.usage_today().get(account.id, {"spend": 0.0})["spend"]
+
+    def check_with_account(total: float, shipping: float | None = None) -> tuple[bool, str]:
+        ok, why = check(total, shipping)
+        if ok and acct_cap is not None and acct_spent + total > acct_cap:
+            return False, f"would exceed {account.name}'s ${acct_cap:.2f} daily spending limit"
+        return ok, why
+
     if sset["dry_run"]:
-        activity.info("order", f"DRY RUN: would auto-buy {qty}× {asin} on Amazon for about ${est_cost:.2f} ({why})",
+        activity.info("order", f"DRY RUN: would auto-buy {qty}× {asin} with {account.name} for about ${est_cost:.2f} ({why})",
                       order_id=order_id)
-        return {"ok": True, "dry_run": True, "message": why}
+        return {"ok": True, "dry_run": True, "message": why, "account": account.name}
     with session_scope() as s:  # record the attempt BEFORE touching checkout so we never double-buy
         o = s.get(Order, order_id)
-        o.auto_buy_attempted, o.auto_buy_at = True, utcnow()
+        o.auto_buy_attempted, o.auto_buy_at, o.amazon_account_id = True, utcnow(), account.id
+    accounts.mark_used(account.id)
     try:
-        res = get_provider().place_order(asin, qty, address, check)
+        res = get_provider().place_order(asin, qty, address, check_with_account, account.profile_dir)
     except Exception as exc:
         _flag(order_id, "needs_attention", f"auto-buy error — check Amazon before buying manually: {exc}")
         return {"ok": False, "message": str(exc)}
     if not res.ok:
-        _flag(order_id, "needs_attention", f"auto-buy did not complete: {res.message}"
+        if "not logged in" in res.message or "sign in" in res.message:
+            accounts.set_login_state(account.id, False)
+        _flag(order_id, "needs_attention", f"auto-buy with {account.name} did not complete: {res.message}"
                                            + (f" (screenshot: {res.screenshot})" if res.screenshot else ""))
         return {"ok": False, "message": res.message}
-    mark_purchased(order_id, res.order_id, res.total_paid, " — auto-buy")
+    mark_purchased(order_id, res.order_id, res.total_paid, " — auto-buy", amazon_account_id=account.id)
     if not res.order_id:
         _flag(order_id, "needs_attention", res.message)
     return {"ok": True, "amazon_order_id": res.order_id, "total": res.total_paid}
@@ -336,19 +359,26 @@ def upload_tracking(order_id: int) -> bool:
 
 def check_tracking() -> dict:
     with session_scope() as s:
-        rows = [(o.id, o.amazon_order_id) for o in s.query(Order).filter(
+        rows = [(o.id, o.amazon_order_id, o.amazon_account_id) for o in s.query(Order).filter(
             Order.status.in_(["purchased", "shipped", "tracking_uploaded"]), Order.amazon_order_id != "",
             Order.delivered_at.is_(None))]
     provider = get_provider()
     found = 0
-    for oid, amz in rows:
+    fallback = accounts.default_for_tracking()
+    for oid, amz, acct_id in rows:
+        acct = accounts.get(acct_id) or fallback
+        if acct is None:
+            activity.warning("tracking", "Add an Amazon account (Settings → Amazon accounts) so tracking can be read")
+            break
         try:
-            info = provider.get_tracking(amz)
+            info = provider.get_tracking(amz, acct.profile_dir)
         except (SourceBlocked, SourcePaused) as exc:
             activity.warning("tracking", f"Tracking check stopped: {exc}")
             break
         except ProviderError as exc:
-            activity.warning("tracking", f"Could not read Amazon order {amz}: {exc}", order_id=oid)
+            if "not logged in" in str(exc):
+                accounts.set_login_state(acct.id, False)
+            activity.warning("tracking", f"Could not read Amazon order {amz} ({acct.name}): {exc}", order_id=oid)
             continue
         if not info:
             continue

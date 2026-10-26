@@ -265,14 +265,18 @@ def test_auto_buy_safeguards(live, monkeypatch):
     assert "daily auto-buy spending cap" in orders.auto_buy(oid)["message"]
     st.update({"auto_buy_max_spend_per_day": ""})
 
+    assert "no Amazon account" in orders.auto_buy(oid)["message"]
+    from app.services import accounts
+
+    acct = accounts.create("Main")
     placed = {}
 
-    def fake_place(asin, qty, address, guard):
+    def fake_place(asin, qty, address, guard, profile=None):
         from app.providers.base import PurchaseResult
 
         assert "free delivery required" in guard(15.10, 5.99)[1]
         ok, why = guard(15.10, 0.0)
-        placed.update(asin=asin, address=address, ok=ok)
+        placed.update(asin=asin, address=address, ok=ok, profile=profile)
         return PurchaseResult(True, order_id="113-1111111-2222222", total_paid=15.10)
 
     from app.providers import get_provider
@@ -280,9 +284,11 @@ def test_auto_buy_safeguards(live, monkeypatch):
     monkeypatch.setattr(get_provider(), "place_order", fake_place)
     res = orders.auto_buy(oid)
     assert res["ok"] and placed["ok"] and placed["address"]["postal"] == "23220"
+    assert placed["profile"].endswith(f"account-{acct['id']}")
     with session_scope() as s:
         o = s.get(Order, oid)
         assert o.status == "purchased" and o.amazon_cost == 15.10 and o.auto_buy_attempted
+        assert o.amazon_account_id == acct["id"]
     # never auto-retried
     assert "already attempted" in orders.auto_buy(oid)["message"] or orders.auto_buy(oid)["message"].startswith("order is")
 
@@ -305,3 +311,79 @@ def test_refresh_review_mode_does_not_touch_listing(sample_source, calls):
     with session_scope() as s:
         l = s.get(Listing, lid)
         assert l.status == "active" and "out of stock" in l.flag_reason
+
+
+
+def test_amazon_account_rotation(sample_source):
+    from datetime import timedelta
+
+    from app.models import AmazonAccount, utcnow
+    from app.services import accounts
+
+    a = accounts.create("Alpha")
+    b = accounts.create("Bravo")
+    c = accounts.create("Charlie")
+    accounts.update(c["id"], {"buys_orders": False})  # excluded from rotation
+    # take turns: never-used first (lowest id), then whoever was used longest ago
+    st.update({"amazon_rotation": "round_robin"})
+    first, _ = accounts.pick_next()
+    assert first.id == a["id"]
+    accounts.mark_used(a["id"])
+    assert accounts.pick_next()[0].id == b["id"]
+    accounts.mark_used(b["id"])
+    assert accounts.pick_next()[0].id == a["id"]
+
+    # least used today: count today's purchases per account
+    def buy(acct_id, cost):
+        with session_scope() as s:
+            s.add(Order(ebay_order_id=f"X{acct_id}{cost}", created_at=utcnow(), amazon_account_id=acct_id,
+                        auto_buy_at=utcnow(), amazon_cost=cost))
+
+    buy(a["id"], 10)
+    buy(a["id"], 12)
+    buy(b["id"], 30)
+    st.update({"amazon_rotation": "least_used_today"})
+    assert accounts.pick_next()[0].id == b["id"]
+
+    # per-account limits
+    accounts.update(b["id"], {"max_orders_per_day": 1})
+    assert accounts.pick_next()[0].id == a["id"]
+    accounts.update(a["id"], {"max_spend_per_day": 25})
+    nxt, why = accounts.pick_next(amount=5)
+    assert nxt is None and "at a limit" in why and "Alpha" in why and "Bravo" in why
+    accounts.update(a["id"], {"max_spend_per_day": ""})  # blank = no limit
+    assert accounts.pick_next(amount=5)[0].id == a["id"]
+    # an account known to be logged out is skipped
+    accounts.set_login_state(a["id"], False)
+    nxt, why = accounts.pick_next()
+    assert nxt is None and "not logged in" in why
+    usage = {x["name"]: x for x in accounts.list_accounts()}
+    assert usage["Alpha"]["orders_today"] == 2 and usage["Alpha"]["spend_today"] == 22.0
+
+
+def test_legacy_login_becomes_first_account(tmp_path, monkeypatch):
+    from app import config
+    from app.services import accounts
+
+    legacy = tmp_path / "amazon_profile"
+    legacy.mkdir()
+    monkeypatch.setattr(config, "LEGACY_AMAZON_PROFILE_DIR", legacy)
+    accounts.ensure_legacy_account()
+    accounts.ensure_legacy_account()  # idempotent
+    rows = accounts.list_accounts()
+    assert len(rows) == 1 and rows[0]["name"] == "Amazon account 1"
+    assert accounts.get(rows[0]["id"]).profile_dir == str(legacy)
+
+
+def test_db_upgrade_adds_new_columns():
+    from sqlalchemy import inspect, text
+
+    from app.db import engine, init_db
+
+    with engine.begin() as conn:
+        conn.execute(text("DROP INDEX ix_orders_amazon_account_id"))
+        conn.execute(text("ALTER TABLE orders DROP COLUMN amazon_account_id"))
+    assert "amazon_account_id" not in {c["name"] for c in inspect(engine).get_columns("orders")}
+    init_db()
+    assert "amazon_account_id" in {c["name"] for c in inspect(engine).get_columns("orders")}
+    assert "ix_orders_amazon_account_id" in {i["name"] for i in inspect(engine).get_indexes("orders")}

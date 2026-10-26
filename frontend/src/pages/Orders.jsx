@@ -37,8 +37,12 @@ function Money({ label, value, est, strong, negative }) {
   );
 }
 
-function OrderPanel({ order, onChange, checkoutMode }) {
+function OrderPanel({ order, onChange, checkoutMode, accts }) {
   const [o, setO] = useState(order);
+  const accountList = accts?.accounts || [];
+  const [acctId, setAcctId] = useState(order.amazon_account_id ?? accts?.next_account_id ?? "");
+  const nextAcct = accountList.find((a) => a.id === accts?.next_account_id);
+  const boughtWith = accountList.find((a) => a.id === o.amazon_account_id);
   const [amzId, setAmzId] = useState(order.amazon_order_id || "");
   const [cost, setCost] = useState(order.amazon_cost ?? "");
   const [tracking, setTracking] = useState(order.tracking_number || "");
@@ -105,11 +109,27 @@ function OrderPanel({ order, onChange, checkoutMode }) {
       </div>
 
       <Section step="1" title="Amazon purchase">
+        {o.status === "awaiting_purchase" && nextAcct && (
+          <p className="mb-3 text-[12.5px] text-ink-2">
+            Buy with <strong className="font-semibold text-ink">{nextAcct.name}</strong> (next in your account rotation).
+          </p>
+        )}
+        {boughtWith && o.status !== "awaiting_purchase" && (
+          <p className="mb-3 text-[12.5px] text-ink-2">Bought with <strong className="font-semibold text-ink">{boughtWith.name}</strong>.</p>
+        )}
         <div className="flex flex-wrap gap-2">
-          <input placeholder="Amazon order # (112-…)" value={amzId} onChange={(e) => setAmzId(e.target.value)} className="min-w-[200px] flex-1" />
-          <input placeholder="Total paid (incl. tax)" type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className="w-44" />
+          {accountList.length > 0 && (
+            <select value={acctId} onChange={(e) => setAcctId(e.target.value)} className="w-40" aria-label="Amazon account used">
+              <option value="">Which account?</option>
+              {accountList.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          )}
+          <input placeholder="Amazon order # (112-…)" value={amzId} onChange={(e) => setAmzId(e.target.value)} className="min-w-[150px] flex-1" />
+          <input placeholder="Total paid (incl. tax)" type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className="w-32" />
           <ActionButton kind="primary"
-            action={() => api.post(`/orders/${o.id}/purchase`, { amazon_order_id: amzId, amazon_cost: cost === "" ? null : Number(cost) })}
+            action={() => api.post(`/orders/${o.id}/purchase`, {
+              amazon_order_id: amzId, amazon_cost: cost === "" ? null : Number(cost), amazon_account_id: acctId === "" ? null : Number(acctId),
+            })}
             onDone={update} success="Purchase saved">Save</ActionButton>
         </div>
         <p className="mt-2 text-xs text-ink-3">Leave the total blank if unsure. The estimate is used until you fill it in.</p>
@@ -169,6 +189,7 @@ function OrderPanel({ order, onChange, checkoutMode }) {
 export default function Orders({ status: appStatus }) {
   const [status, setStatus] = useState("");
   const [rows, reload] = useLoad(() => api.get(`/orders${status ? `?status=${status}` : ""}`), [status], 30000);
+  const [accts, reloadAccts] = useLoad(() => api.get("/amazon/accounts"), [], 60000);
   const [open, setOpen] = useState(null);
   const needs = (rows || []).filter((o) => o.status === "awaiting_purchase").length;
   const cols = [
@@ -220,7 +241,7 @@ export default function Orders({ status: appStatus }) {
       </Card>
       <Drawer open={!!open} onClose={() => setOpen(null)} title={open ? `Order ${open.ebay_order_id}` : ""}
         subtitle={open && <span className="flex flex-wrap items-center gap-2"><StatusBadge status={open.status} /> {when(open.created_at)} · buyer {open.buyer_username}</span>}>
-        {open && <OrderPanel key={open.id} order={open} onChange={reload} checkoutMode={appStatus?.checkout_mode} />}
+        {open && <OrderPanel key={open.id} order={open} onChange={() => { reload(); reloadAccts(); }} checkoutMode={appStatus?.checkout_mode} accts={accts} />}
       </Drawer>
     </>
   );

@@ -122,6 +122,9 @@ SPECS: list[Spec] = [
     # --- Orders -------------------------------------------------------------
     Spec("checkout_mode", "assisted", "choice", "orders", "Checkout mode",
          choices=[("assisted", "Assisted (I buy on Amazon, app helps)"), ("auto", "Auto (app places the Amazon order)")]),
+    Spec("amazon_rotation", "round_robin", "choice", "orders", "Amazon account rotation",
+         "How auto-buy picks which of your Amazon accounts places each order.",
+         choices=[("round_robin", "Take turns"), ("least_used_today", "Least used today")]),
     Spec("auto_buy_kill_switch", False, "bool", "orders", "Auto-buy kill switch (stop all auto orders)"),
     Spec("auto_buy_max_order_dollars", 75.0, "float", "orders", "Max auto-order total ($)", min=0),
     Spec("auto_buy_max_per_day", 5, "int", "orders", "Max auto-orders per day", min=0),

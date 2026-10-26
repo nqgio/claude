@@ -98,22 +98,29 @@ class AmazonPlaywrightProvider(ProductProvider):
         self._headless = None
         self._pacer = _Pacer()
         self._lock = threading.Lock()
+        self._profile = None  # profile directory of the open browser
+        self._want = str(config.AMAZON_BROWSE_DIR)  # profile the current operation needs
 
     # ---- thread plumbing -----------------------------------------------------
     def _run(self, fn, *args, timeout: float | None = None):
         return self._executor.submit(fn, *args).result(timeout=timeout)
 
+    def _use(self, profile: str | None) -> None:
+        """Select the browser profile for the next steps: an account's login profile,
+        or (default) the logged-out browsing profile."""
+        self._want = str(profile or config.AMAZON_BROWSE_DIR)
+
     def _context(self, headless: bool | None = None):
         want = bool(st.get("amazon_headless")) if headless is None else headless
-        if self._ctx is not None and self._headless == want:
+        if self._ctx is not None and self._headless == want and self._profile == self._want:
             return self._ctx
         self._close_ctx()
         if self._pw is None:
             from playwright.sync_api import sync_playwright
 
             self._pw = sync_playwright().start()
-        config.AMAZON_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
-        kwargs = dict(user_data_dir=str(config.AMAZON_PROFILE_DIR), headless=want, locale="en-US",
+        os.makedirs(self._want, exist_ok=True)
+        kwargs = dict(user_data_dir=self._want, headless=want, locale="en-US",
                       viewport={"width": 1366, "height": 900}, timezone_id=None)
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         exe = os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE")
@@ -121,7 +128,7 @@ class AmazonPlaywrightProvider(ProductProvider):
             kwargs["executable_path"] = exe
         self._ctx = self._pw.chromium.launch_persistent_context(**kwargs)
         self._ctx.set_default_timeout(45000)
-        self._headless = want
+        self._headless, self._profile = want, self._want
         return self._ctx
 
     def _close_ctx(self):
@@ -161,6 +168,7 @@ class AmazonPlaywrightProvider(ProductProvider):
         return self._run(self._search, term, category, page)
 
     def _search(self, term, category, page):
+        self._use(None)
         url = f"{BASE}/s?k={quote_plus(term)}" if term else f"{BASE}/s?"
         if category:
             if category.startswith("node:"):
@@ -175,6 +183,7 @@ class AmazonPlaywrightProvider(ProductProvider):
         return self._run(self._get_product, asin)
 
     def _get_product(self, asin):
+        self._use(None)
         url = f"{BASE}/dp/{asin}"
         html = self._goto(url)
         try:
@@ -183,12 +192,13 @@ class AmazonPlaywrightProvider(ProductProvider):
             raise ProviderError(f"{asin}: {exc}") from exc
 
     # ---- login ---------------------------------------------------------------
-    def open_login_browser(self) -> str:
+    def open_login_browser(self, profile: str | None = None, label: str = "Amazon") -> str:
         def _open():
+            self._use(profile)
             ctx = self._context(headless=False)
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             page.goto(f"{BASE}/gp/sign-in.html")
-            activity.info("amazon", "Opened Amazon login window. Log in, then close the window.")
+            activity.info("amazon", f"Opened the login window for {label}. Log in, then close the window.")
             deadline = time.time() + 20 * 60
             while time.time() < deadline:
                 try:
@@ -198,7 +208,7 @@ class AmazonPlaywrightProvider(ProductProvider):
                 except Exception:
                     break
             self._close_ctx()
-            activity.info("amazon", "Amazon login window closed; profile saved")
+            activity.info("amazon", f"Login window for {label} closed; login saved")
             return "closed"
 
         self._executor.submit(_open)
@@ -207,11 +217,19 @@ class AmazonPlaywrightProvider(ProductProvider):
     def _logged_in(self, html: str) -> bool:
         return not re.search(r"Hello,\s*sign in", html, re.I)
 
-    # ---- order tracking -------------------------------------------------------
-    def get_tracking(self, order_id: str) -> TrackingInfo | None:
-        return self._run(self._get_tracking, order_id)
+    def check_login(self, profile: str | None = None) -> bool:
+        def _check():
+            self._use(profile)
+            return self._logged_in(self._goto(f"{BASE}/gp/css/homepage.html"))
 
-    def _get_tracking(self, order_id):
+        return self._run(_check, timeout=10 * 60)
+
+    # ---- order tracking -------------------------------------------------------
+    def get_tracking(self, order_id: str, profile: str | None = None) -> TrackingInfo | None:
+        return self._run(self._get_tracking, order_id, profile)
+
+    def _get_tracking(self, order_id, profile=None):
+        self._use(profile)
         html = self._goto(f"{BASE}/gp/your-account/order-details?orderID={quote_plus(order_id)}")
         page = self._page()
         if "/ap/signin" in page.url:
@@ -227,8 +245,8 @@ class AmazonPlaywrightProvider(ProductProvider):
         return info
 
     # ---- automatic checkout --------------------------------------------------------
-    def place_order(self, asin: str, quantity: int, address: dict, guard) -> PurchaseResult:
-        return self._run(self._place_order, asin, quantity, address, guard, timeout=15 * 60)
+    def place_order(self, asin: str, quantity: int, address: dict, guard, profile: str | None = None) -> PurchaseResult:
+        return self._run(self._place_order, asin, quantity, address, guard, profile, timeout=15 * 60)
 
     def _shot(self, label: str) -> str:
         path = config.SCREENSHOT_DIR / f"{datetime.now():%Y%m%d-%H%M%S}-{label}.png"
@@ -249,9 +267,10 @@ class AmazonPlaywrightProvider(ProductProvider):
                 continue
         return False
 
-    def _place_order(self, asin, quantity, address, guard) -> PurchaseResult:
+    def _place_order(self, asin, quantity, address, guard, profile=None) -> PurchaseResult:
         """Buy Now → ship to the eBay buyer → verify total with `guard` → place order.
         Stops (without ordering) the moment anything looks unexpected."""
+        self._use(profile)
         html = self._goto(f"{BASE}/dp/{asin}")
         page = self._page()
         if not self._logged_in(html):

@@ -120,6 +120,8 @@ function Sidebar({ status, onNavigate }) {
             <StatusRow ok={status.environment === "production"} warn={status.environment === "sandbox"} label="eBay"
               value={status.ebay.connected ? (status.environment === "sandbox" ? "Sandbox" : "Production") : "Not connected"} />
             <StatusRow ok={status.amazon.status === "ok"} label="Amazon" value={status.amazon.status === "ok" ? "Healthy" : "Paused"} />
+            <StatusRow ok={status.amazon.accounts_logged_in > 0} warn={status.amazon.accounts > 0 && !status.amazon.accounts_logged_in}
+              label="Accounts" value={status.amazon.accounts ? `${status.amazon.accounts_logged_in}/${status.amazon.accounts} logged in` : "None yet"} />
           </div>
         )}
         <ThemeToggle />
@@ -166,7 +168,9 @@ export default function App() {
   const [status, reload] = useLoad(() => api.get("/status"), [], 15000);
   const [open, setOpen] = useState(false);
   const loc = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [loc.pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [loc.pathname]);
   return (
     <div className="min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-line bg-surface-2 lg:block">

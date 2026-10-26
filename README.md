@@ -129,9 +129,23 @@ Open `.env` in Notepad (it's created in the app folder the first time you run `S
    - The pricing formula assumes **free shipping**, so pick a free-shipping policy. The app warns you if you don't.
    - Handling time comes from the shipping policy. The app warns if it doesn't match your setting.
 
-### Log in to Amazon once (for tracking and auto-buy)
+### Add your Amazon account(s) (for tracking and auto-buy)
 
-Settings → **Amazon scraper** → **Open Amazon browser (log in once)**. A browser window opens on your PC. Log in to Amazon (tick "Keep me signed in"), then close the window. The login is kept in `data/amazon_profile`. The app never sees or stores your password or card.
+Settings → **eBay & Amazon** → **Amazon accounts**:
+
+1. Type a name (e.g. "Main") and click **Add account**. Add as many accounts as you want to rotate through.
+2. Click **Log in** on each one. A browser window opens on your PC. Log in to that Amazon account, tick "Keep me signed in", then close the window. Each account keeps its own saved login under `data/amazon_accounts/`. The app never sees or stores your passwords or cards.
+3. Click **Check login** to confirm (the badge turns green).
+4. Per account you can turn it on/off, choose whether it **buys orders**, and set an optional **max orders/day** and **max spend/day**.
+5. Under **Orders & checkout → Amazon account rotation**, choose **Take turns** or **Least used today**.
+
+How it's used:
+- **Auto-buy** picks the next account in the rotation that's logged in and under its limits. The order records which account bought it, and if every account is at a limit, the order is flagged for you instead.
+- **Assisted mode:** the order panel tells you which account is next. Pick the account you actually used when you save the purchase.
+- **Tracking** is read from the account that placed each order.
+- **Product browsing** (discovery, price checks) uses a separate logged-out browser, so it never touches your buying accounts.
+
+Upgrading from an earlier version? Your existing Amazon login is kept automatically as "Amazon account 1".
 
 ---
 
@@ -145,7 +159,8 @@ Settings → **Amazon scraper** → **Open Amazon browser (log in once)**. A bro
 | **Filters** | Min/max Amazon price, min rating, min reviews, Prime only, in stock only, max shipping days |
 | **Listing defaults** | Quantity, handling time, business policies, item location, Promoted Listings campaign, optional **description template**, optional Claude writer |
 | **Price & stock refresh** | **Auto refresh on/off**; **every day at a set time** (default 3:00 AM), **once a week** on a set day/time, or **every N hours**; **apply changes to eBay automatically** (or just flag them for review); what to do when Amazon is out of stock (qty 0 / end) or profit falls below your floor (qty 0 / end / flag) |
-| **Orders & checkout** | Assisted vs auto checkout, kill switch, max order $, max orders/day, max spend/day, hold if delivery isn't free, how often to sync orders and check tracking |
+| **Orders & checkout** | Assisted vs auto checkout, Amazon account rotation (take turns / least used today), kill switch, max order $, max orders/day, max spend/day, hold if delivery isn't free, how often to sync orders and check tracking |
+| **Amazon accounts** | Add/remove buying accounts, log in to each, per-account on/off, "buys orders", max orders/day and max spend/day |
 | **Amazon scraper** | Max pages per hour, random delay range, cache time, cooldown after a CAPTCHA, hidden vs visible browser |
 | **Blocklist** | Add/remove/import CSV of brands and keywords; scan active listings and flag or end matches |
 
@@ -239,7 +254,8 @@ Run once, after setup:
 
 - `.env`: your keys and tokens
 - `data/app.db`: database (settings, listings, orders, logs). Back up this file.
-- `data/amazon_profile`: the Amazon browser profile
+- `data/amazon_accounts/`: one saved Amazon login per buying account
+- `data/amazon_browse`: the logged-out browser used for product pages
 - `data/screenshots`: auto-buy screenshots
 
 ## For developers

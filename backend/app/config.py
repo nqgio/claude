@@ -25,7 +25,12 @@ HOST = os.environ.get("APP_HOST", "127.0.0.1")
 PORT = int(os.environ.get("APP_PORT", "8000"))
 # Separate, public-safe listener that only serves eBay's account-deletion webhook.
 NOTIFY_PORT = int(os.environ.get("APP_NOTIFY_PORT", "8001"))
-AMAZON_PROFILE_DIR = Path(os.environ.get("AMAZON_PROFILE_DIR", DATA_DIR / "amazon_profile"))
+# Logged-out profile used only for browsing products (search, product pages, price checks).
+AMAZON_BROWSE_DIR = Path(os.environ.get("AMAZON_BROWSE_DIR", DATA_DIR / "amazon_browse"))
+# One profile per buying account lives under here.
+AMAZON_ACCOUNTS_DIR = DATA_DIR / "amazon_accounts"
+# Single login profile from earlier versions; becomes "Amazon account 1" on upgrade.
+LEGACY_AMAZON_PROFILE_DIR = DATA_DIR / "amazon_profile"
 SCREENSHOT_DIR = DATA_DIR / "screenshots"
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 

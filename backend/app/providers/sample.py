@@ -122,8 +122,8 @@ class SampleProvider(ProductProvider):
     def get_product(self, asin: str) -> ProductData:
         return parser.parse_product(product_html(asin), asin, self.product_url(asin))
 
-    def place_order(self, asin, quantity, address, guard) -> PurchaseResult:
+    def place_order(self, asin, quantity, address, guard, profile=None) -> PurchaseResult:
         return PurchaseResult(False, message="sample data source cannot place real orders")
 
-    def get_tracking(self, order_id: str) -> TrackingInfo | None:
+    def get_tracking(self, order_id: str, profile=None) -> TrackingInfo | None:
         return None

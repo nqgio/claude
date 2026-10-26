@@ -182,6 +182,7 @@ class Order(Base):
     # Amazon side
     amazon_url: Mapped[str] = mapped_column(String(300), default="")
     amazon_order_id: Mapped[str] = mapped_column(String(40), default="")
+    amazon_account_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)  # which account bought it
     amazon_cost_est: Mapped[float] = mapped_column(Float, default=0.0)  # current Amazon cost x qty (incl tax)
     amazon_cost: Mapped[float | None] = mapped_column(Float, nullable=True)  # what you actually paid
     amazon_refund: Mapped[float] = mapped_column(Float, default=0.0)
@@ -204,4 +205,22 @@ class BlocklistEntry(Base):
     term: Mapped[str] = mapped_column(String(120))
     kind: Mapped[str] = mapped_column(String(10), default="brand")  # brand|keyword
     source: Mapped[str] = mapped_column(String(10), default="user")  # seed|user|import
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class AmazonAccount(Base):
+    """An Amazon buying account. Each has its own browser profile (you log in once);
+    the app never sees or stores the password or card."""
+
+    __tablename__ = "amazon_accounts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    profile_dir: Mapped[str] = mapped_column(String(500))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    buys_orders: Mapped[bool] = mapped_column(Boolean, default=True)  # include in auto-buy rotation
+    max_orders_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_spend_per_day: Mapped[float | None] = mapped_column(Float, nullable=True)
+    logged_in: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None = not checked yet
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

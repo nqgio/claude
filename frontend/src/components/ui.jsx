@@ -408,7 +408,9 @@ export function Table({ columns, rows, onRowClick, empty, initialSort, loading }
 
 export function Thumb({ src, size = "h-10 w-10" }) {
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [src]);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
   if (!src || failed)
     return (
       <div className={cx(size, "grid shrink-0 place-items-center rounded-lg border border-line bg-surface-3 text-ink-3")}>
