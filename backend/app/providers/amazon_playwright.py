@@ -51,18 +51,24 @@ def check_not_paused() -> None:
         return
     if datetime.now(timezone.utc) < until:
         raise SourcePaused(f"Amazon jobs paused until {until.isoformat()} ({st.get('amazon_pause_reason')})")
-    st.set_internal("amazon_paused_until", None)
-    st.set_internal("amazon_pause_reason", "")
-    activity.info("amazon", "Amazon cooldown finished — Amazon jobs resumed")
+    resume("Amazon cooldown finished — Amazon jobs resumed")
 
 
-def pause_for_block(reason: str) -> None:
+def pause_for_block(reason: str, url: str = "") -> None:
     minutes = int(st.get("amazon_cooldown_minutes"))
     until = datetime.now(timezone.utc) + timedelta(minutes=minutes)
     st.set_internal("amazon_paused_until", until.isoformat())
     st.set_internal("amazon_pause_reason", reason)
+    st.set_internal("amazon_blocked_url", url)
     activity.warning("amazon", f"Amazon showed a CAPTCHA/block ({reason}). Not bypassing it — all Amazon jobs "
-                               f"paused for {minutes} minutes.")
+                               f"paused for {minutes} minutes. You can solve it yourself with “Solve it in a browser”.")
+
+
+def resume(message: str) -> None:
+    st.set_internal("amazon_paused_until", None)
+    st.set_internal("amazon_pause_reason", "")
+    st.set_internal("amazon_blocked_url", "")
+    activity.info("amazon", message)
 
 
 class _Pacer:
@@ -100,6 +106,7 @@ class AmazonPlaywrightProvider(ProductProvider):
         self._lock = threading.Lock()
         self._profile = None  # profile directory of the open browser
         self._want = str(config.AMAZON_BROWSE_DIR)  # profile the current operation needs
+        self._solving = False
 
     # ---- thread plumbing -----------------------------------------------------
     def _run(self, fn, *args, timeout: float | None = None):
@@ -157,7 +164,7 @@ class AmazonPlaywrightProvider(ProductProvider):
             raise ProviderError(f"failed to load {url}: {exc}") from exc
         html = page.content()
         if parser.is_block_page(html, page.url) or (resp is not None and resp.status == 503 and "amazon" in html.lower()):
-            pause_for_block("robot check page")
+            pause_for_block("robot check page", page.url)
             raise SourceBlocked("Amazon showed a CAPTCHA / robot check")
         if resp is not None and resp.status == 404:
             raise ProviderError("page not found (404)")
@@ -212,6 +219,48 @@ class AmazonPlaywrightProvider(ProductProvider):
             return "closed"
 
         self._executor.submit(_open)
+        return "opened"
+
+    def open_solve_browser(self) -> str:
+        """Show the app's (logged-out) Amazon browser on screen at the blocked page so a person can
+        answer the CAPTCHA. Nothing is solved automatically; jobs resume only if the page that was
+        open when the window closed is no longer a CAPTCHA."""
+        if self._solving:
+            return "already open"
+        self._solving = True
+
+        def _solve():
+            try:
+                self._use(None)
+                ctx = self._context(headless=False)
+                page = ctx.pages[0] if ctx.pages else ctx.new_page()
+                try:
+                    page.goto(st.get("amazon_blocked_url") or BASE + "/", wait_until="domcontentloaded")
+                except Exception:
+                    pass
+                activity.info("amazon", "Opened Amazon on your screen. Solve the CAPTCHA, wait for the normal Amazon page, "
+                                        "then close the window.")
+                last_html, last_url = "", ""
+                deadline = time.time() + 20 * 60
+                while time.time() < deadline:
+                    try:
+                        if not ctx.pages:
+                            break
+                        pg = ctx.pages[0]
+                        last_html, last_url = pg.content(), pg.url
+                        pg.wait_for_timeout(1500)
+                    except Exception:
+                        break
+                self._close_ctx()
+                if last_html and not parser.is_block_page(last_html, last_url):
+                    resume("CAPTCHA solved in the browser — Amazon jobs resumed")
+                else:
+                    activity.warning("amazon", "The window closed while Amazon still showed a CAPTCHA, so Amazon jobs stay "
+                                               "paused. Try “Solve it in a browser” again, or wait for the cooldown.")
+            finally:
+                self._solving = False
+
+        self._executor.submit(_solve)
         return "opened"
 
     def _logged_in(self, html: str) -> bool:

@@ -71,6 +71,7 @@ export default function AmazonAccounts({ status, reloadStatus, bare = false }) {
       {a && a.status !== "ok" && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
           <span className="flex-1">Amazon jobs paused until {when(a.paused_until)}: {a.reason}</span>
+          <ActionButton size="sm" kind="primary" action={() => api.post("/amazon/solve")} onDone={() => setTimeout(reloadStatus, 5000)}>Solve it in a browser</ActionButton>
           <ActionButton size="sm" action={() => api.post("/amazon/resume")} onDone={reloadStatus} success="Resumed">Resume now</ActionButton>
         </div>
       )}

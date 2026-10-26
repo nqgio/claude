@@ -92,14 +92,15 @@ SPECS: list[Spec] = [
     Spec("ai_model", "claude-opus-5-5", "str", "listing", "Claude model for listing content"),
 
     # --- Amazon scraper -----------------------------------------------------
-    Spec("amazon_max_pages_per_hour", 40, "int", "amazon", "Max Amazon pages per hour", min=1, max=600),
-    Spec("amazon_min_delay_sec", 8.0, "float", "amazon", "Min delay between pages (sec)", min=1),
-    Spec("amazon_max_delay_sec", 25.0, "float", "amazon", "Max delay between pages (sec)", min=1),
+    Spec("amazon_max_pages_per_hour", 20, "int", "amazon", "Max Amazon pages per hour", min=1, max=600),
+    Spec("amazon_min_delay_sec", 15.0, "float", "amazon", "Min delay between pages (sec)", min=1),
+    Spec("amazon_max_delay_sec", 45.0, "float", "amazon", "Max delay between pages (sec)", min=1),
     Spec("amazon_cache_hours", 6.0, "float", "amazon", "Reuse cached product data for (hours)", min=0),
     Spec("amazon_cooldown_minutes", 180, "int", "amazon", "Pause after CAPTCHA/block (minutes)", min=5),
     Spec("amazon_headless", True, "bool", "amazon", "Run Amazon browser hidden (headless)"),
     Spec("amazon_paused_until", None, "str", "amazon", "", hidden=True),
     Spec("amazon_pause_reason", "", "str", "amazon", "", hidden=True),
+    Spec("amazon_blocked_url", "", "str", "amazon", "", hidden=True),
 
     # --- Refresh ------------------------------------------------------------
     Spec("refresh_enabled", True, "bool", "refresh", "Auto refresh on",

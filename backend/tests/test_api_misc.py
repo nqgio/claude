@@ -129,3 +129,20 @@ def test_api_keys_saved_to_env_file(api, monkeypatch):
     assert os.environ["EBAY_SANDBOX_APP_ID"] == "MyApp-SBX-123"
     assert api.put("/api/keys", json={"EBAY_VERIFICATION_TOKEN": "short"}).status_code == 400
     assert api.put("/api/keys", json={"NOT_A_KEY": "x"}).status_code == 400
+
+
+def test_block_remembers_page_and_solve_endpoint(api, monkeypatch):
+    from app.providers import amazon_playwright as ap
+    from app.providers import get_provider
+
+    ap.pause_for_block("robot check page", "https://www.amazon.com/dp/B0TEST0001")
+    assert st.get("amazon_blocked_url").endswith("B0TEST0001") and api.get("/api/status").json()["amazon"]["status"] == "paused"
+    st.update({"product_source": "sample"})
+    assert api.post("/api/amazon/solve").status_code == 400  # only for the Amazon source
+    st.update({"product_source": "amazon_playwright"})
+    opened = []
+    monkeypatch.setattr(get_provider("amazon_playwright"), "open_solve_browser", lambda: opened.append(1) or "opened")
+    assert "window opened" in api.post("/api/amazon/solve").json()["message"]
+    assert opened
+    ap.resume("test")
+    assert st.get("amazon_paused_until") is None and st.get("amazon_blocked_url") == ""

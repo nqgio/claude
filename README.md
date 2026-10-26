@@ -245,7 +245,8 @@ Run once, after setup:
 - **Queue:** today's products and posting times; remove, add an ASIN, post now, preview
 - **Best & worst:** top earners, money-losers, listings with views but no sales
 - **Activity log:** everything the app did, filterable
-- **Banners** at the top warn when dry-run is on, you're in sandbox, or Amazon jobs are paused after a CAPTCHA (they resume by themselves after the cooldown).
+- **Banners** at the top warn when dry-run is on, you're in sandbox, or Amazon jobs are paused after a CAPTCHA.
+- **If Amazon shows a CAPTCHA:** the app pauses Amazon jobs and never tries to get past it on its own. Click **Solve it in a browser** in the red banner. An Amazon window opens on your PC at the blocked page; solve the CAPTCHA yourself, wait for the normal Amazon page, then close the window. The app resumes right away if Amazon is happy again. Otherwise it stays paused until the cooldown ends. If CAPTCHAs keep coming back, lower **Max pages per hour** and raise the delays in **Settings → Amazon scraper**.
 
 ## Where things are stored
 

@@ -141,9 +141,14 @@ function Alerts({ status, reload }) {
         <ShieldAlert className="h-4.5 w-4.5 shrink-0" />
         <span className="flex-1">
           <strong className="font-semibold">Amazon jobs paused.</strong> Amazon showed a CAPTCHA or block ({status.amazon.reason}). The app
-          never bypasses it, and resumes automatically {when(status.amazon.paused_until)}.
+          never bypasses it. Solve it yourself in a browser window, or it resumes automatically {when(status.amazon.paused_until)}.
         </span>
-        <ActionButton size="sm" action={() => api.post("/amazon/resume")} onDone={reload} success="Amazon jobs resumed">Resume now</ActionButton>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton size="sm" kind="primary" action={() => api.post("/amazon/solve")} onDone={() => setTimeout(reload, 5000)}>
+            Solve it in a browser
+          </ActionButton>
+          <ActionButton size="sm" action={() => api.post("/amazon/resume")} onDone={reload} success="Amazon jobs resumed">Resume now</ActionButton>
+        </div>
       </div>
     );
   if (status.dry_run)

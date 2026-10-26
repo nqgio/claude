@@ -260,10 +260,20 @@ def check_amazon_account(aid: int):
 
 @router.post("/amazon/resume")
 def amazon_resume():
-    st.set_internal("amazon_paused_until", None)
-    st.set_internal("amazon_pause_reason", "")
-    activity.info("amazon", "Amazon jobs resumed manually from the dashboard")
+    from ..providers.amazon_playwright import resume
+
+    resume("Amazon jobs resumed manually from the dashboard")
     return {"ok": True}
+
+
+@router.post("/amazon/solve")
+def amazon_solve():
+    if st.get("product_source") != "amazon_playwright":
+        raise HTTPException(400, "Product data source isn't Amazon")
+    r = get_provider("amazon_playwright").open_solve_browser()
+    if r == "already open":
+        return {"message": "The Amazon window is already open on this PC."}
+    return {"message": "An Amazon window opened on this PC. Solve the CAPTCHA, wait for the normal Amazon page, then close it."}
 
 
 # ---- metrics -----------------------------------------------------------------------------------------------
