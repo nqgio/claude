@@ -1,9 +1,10 @@
 import {
-  Ban, Calculator, CheckCircle2, Circle, Cloud, Filter, Globe, LogIn, Monitor, Moon, Palette, Plug, Plus, RefreshCcw, Search, ShieldCheck,
+  Ban, Bot, Calculator, CheckCircle2, Circle, Filter, Globe, Hand, LogIn, Monitor, Moon, Palette, Plug, RefreshCcw, Search, ShieldCheck,
   ShoppingCart, SlidersHorizontal, Store, Sun, Tag, Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import AmazonAccounts, { OrderingToggle } from "../components/AmazonAccounts";
 import { useToast } from "../components/toast";
 import { ActionButton, Badge, Breakdown, Button, Card, PageHeader, Segmented, Switch, cx, money, useLoad, when } from "../components/ui";
 import { useTheme } from "../theme.jsx";
@@ -136,104 +137,6 @@ function Connections({ status, reloadStatus }) {
   );
 }
 
-function LimitInput({ value, onSave, prefix, placeholder }) {
-  const [v, setV] = useState(value ?? "");
-  useEffect(() => {
-    setV(value ?? "");
-  }, [value]);
-  return (
-    <span className="relative inline-block">
-      {prefix && <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-xs text-ink-3">{prefix}</span>}
-      <input type="number" min="0" step={prefix ? "0.01" : "1"} value={v} placeholder={placeholder}
-        onChange={(e) => setV(e.target.value)} onBlur={() => String(v) !== String(value ?? "") && onSave(v)}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={cx("!h-8 w-24 text-xs", prefix && "!pl-5")} />
-    </span>
-  );
-}
-
-function AmazonAccounts({ status, reloadStatus }) {
-  const [data, reload] = useLoad(() => api.get("/amazon/accounts"), [], 15000);
-  const [name, setName] = useState("");
-  const toast = useToast();
-  const a = status?.amazon;
-  const patch = async (id, values) => {
-    try {
-      await api.patch(`/amazon/accounts/${id}`, values);
-      reload();
-    } catch (e) {
-      toast(e.message, "error");
-    }
-  };
-  const loginBadge = (acc) =>
-    acc.logged_in === true ? <Badge color="green" dot>Logged in</Badge>
-      : acc.logged_in === false ? <Badge color="red" dot>Not logged in</Badge>
-      : <Badge color="gray" dot>Not checked</Badge>;
-  return (
-    <Card title="Amazon accounts" icon={Cloud}
-      description="Buying accounts for auto-buy and tracking. Each logs in once in its own browser window; passwords and cards are never stored."
-      actions={a && <Badge color={a.status === "ok" ? "green" : "red"} dot>{a.status === "ok" ? "Amazon healthy" : "Amazon paused"}</Badge>}>
-      {a && a.status !== "ok" && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
-          <span className="flex-1">Amazon jobs paused until {when(a.paused_until)}: {a.reason}</span>
-          <ActionButton size="sm" action={() => api.post("/amazon/resume")} onDone={reloadStatus} success="Resumed">Resume now</ActionButton>
-        </div>
-      )}
-      <div className="space-y-3">
-        {(data?.accounts || []).map((acc) => (
-          <div key={acc.id} className={cx("rounded-xl border p-3.5", data.next_account_id === acc.id ? "border-accent/50 bg-accent-soft/40" : "border-line")}>
-            <div className="flex flex-wrap items-center gap-2">
-              <input defaultValue={acc.name} onBlur={(e) => e.target.value !== acc.name && patch(acc.id, { name: e.target.value })}
-                className="!h-8 w-44 font-medium" aria-label="Account name" />
-              {loginBadge(acc)}
-              {data.next_account_id === acc.id && <Badge color="indigo">Next in rotation</Badge>}
-              <span className="ml-auto text-xs text-ink-3">{acc.orders_today} order{acc.orders_today === 1 ? "" : "s"} · {money(acc.spend_today)} today</span>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2.5 text-[12.5px] text-ink-2">
-              <label className="flex items-center gap-2"><Switch checked={acc.enabled} onChange={(v) => patch(acc.id, { enabled: v })} label="Enabled" /> Enabled</label>
-              <label className="flex items-center gap-2"><Switch checked={acc.buys_orders} onChange={(v) => patch(acc.id, { buys_orders: v })} label="Buys orders" /> Buys orders</label>
-              <span className="flex items-center gap-2">Max orders/day <LimitInput value={acc.max_orders_per_day} placeholder="No limit" onSave={(v) => patch(acc.id, { max_orders_per_day: v })} /></span>
-              <span className="flex items-center gap-2">Max spend/day <LimitInput value={acc.max_spend_per_day} prefix="$" placeholder="No limit" onSave={(v) => patch(acc.id, { max_spend_per_day: v })} /></span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <ActionButton size="sm" kind="primary" icon={LogIn} action={() => api.post(`/amazon/accounts/${acc.id}/login`)}>Log in</ActionButton>
-              <ActionButton size="sm" icon={ShieldCheck} action={() => api.post(`/amazon/accounts/${acc.id}/check`)} onDone={() => setTimeout(reload, 8000)}>Check login</ActionButton>
-              <ActionButton size="sm" kind="ghost" confirm={`Remove ${acc.name}? Its saved login on this PC is deleted too.`}
-                action={() => api.del(`/amazon/accounts/${acc.id}`)} onDone={() => { reload(); reloadStatus(); }} success="Account removed">Remove</ActionButton>
-            </div>
-          </div>
-        ))}
-        {data && data.accounts.length === 0 && (
-          <p className="rounded-lg border border-dashed border-line-strong p-4 text-center text-[13px] text-ink-3">
-            No Amazon accounts yet. Add one to use auto-buy and automatic tracking.
-          </p>
-        )}
-        <form className="flex flex-wrap gap-2" onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            await api.post("/amazon/accounts", { name: name || `Amazon account ${(data?.accounts.length || 0) + 1}` });
-            setName("");
-            reload();
-            reloadStatus();
-            toast("Account added. Click “Log in” on it to sign in.");
-          } catch (err) {
-            toast(err.message, "error");
-          }
-        }}>
-          <input placeholder="Account name (e.g. Main, Backup)" value={name} onChange={(e) => setName(e.target.value)} className="min-w-0 flex-1" />
-          <Button kind="secondary" type="submit" icon={Plus}>Add account</Button>
-        </form>
-        {data && data.accounts.length > 1 && (
-          <p className="text-xs text-ink-3">
-            Rotation: <strong className="font-medium text-ink-2">{data.rotation === "least_used_today" ? "least used today" : "take turns"}</strong> (change it under Orders & checkout).
-            {data.next_reason && ` ${data.next_reason}.`}
-          </p>
-        )}
-      </div>
-    </Card>
-  );
-}
-
 function Blocklist() {
   const [rows, reload] = useLoad(() => api.get("/blocklist"), []);
   const [term, setTerm] = useState("");
@@ -363,7 +266,9 @@ export default function Settings({ status, reloadStatus }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const save = async (patch) => {
     try {
-      const r = await api.put("/settings", patch || form);
+      // Send only what changed, so switches flipped elsewhere (e.g. on the Orders page) are never overwritten.
+      const changes = patch || Object.fromEntries(Object.entries(form).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(data.values[k])));
+      const r = await api.put("/settings", changes);
       setForm(r.values);
       await reload();
       reloadStatus && reloadStatus();
@@ -402,7 +307,7 @@ export default function Settings({ status, reloadStatus }) {
         </nav>
         <div className="min-w-0 space-y-6">
           <section id="mode" className="scroll-mt-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className={cx("card p-4", form.dry_run ? "" : "ring-2 ring-rose-500/40")}>
                 <div className="flex items-center justify-between">
                   <span className="text-[12.5px] font-medium text-ink-2">Dry-run mode</span>
@@ -426,6 +331,20 @@ export default function Settings({ status, reloadStatus }) {
                     }} />
                 </div>
                 <p className="mt-2 text-xs text-ink-3">Test on the sandbox first, then switch with one click.</p>
+              </div>
+              <div className={cx("card p-4", form.checkout_mode === "auto" && "ring-2 ring-accent/30")}>
+                <span className="text-[12.5px] font-medium text-ink-2">Amazon ordering</span>
+                <div className="mt-2.5">
+                  <Segmented value={form.checkout_mode} options={[["assisted", "Manual", Hand], ["auto", "Automatic", Bot]]}
+                    onChange={(v) => {
+                      if (v === form.checkout_mode) return;
+                      if (v === "auto" && !window.confirm("Turn on AUTOMATIC ordering? The app will buy each new eBay order on Amazon with your Amazon accounts (your saved card), as long as it's profitable and within your limits.")) return;
+                      save({ checkout_mode: v });
+                    }} />
+                </div>
+                <p className="mt-2 text-xs text-ink-3">
+                  {form.checkout_mode === "auto" ? "The app places Amazon orders using your accounts in rotation." : "You buy each order yourself; the app tells you which account to use."}
+                </p>
               </div>
               <div className="card p-4">
                 <span className="text-[12.5px] font-medium text-ink-2">Product data source</span>

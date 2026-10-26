@@ -1,8 +1,9 @@
-import { AlertTriangle, ExternalLink, MapPin, RefreshCw, ShoppingBag, ShoppingCart, Truck, Wallet } from "lucide-react";
+import { AlertTriangle, ExternalLink, MapPin, RefreshCw, ShoppingBag, ShoppingCart, Truck, Users, Wallet } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api";
+import AmazonAccounts, { OrderingToggle } from "../components/AmazonAccounts";
 import {
-  ActionButton, Badge, Card, CopyButton, Drawer, EmptyState, PageHeader, Segmented, StatusBadge, Table, cx, money, statusLabel,
+  ActionButton, Badge, Button, Card, CopyButton, Drawer, EmptyState, Modal, PageHeader, Segmented, StatusBadge, Table, cx, money, statusLabel,
   when, useLoad,
 } from "../components/ui";
 
@@ -186,8 +187,9 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
   );
 }
 
-export default function Orders({ status: appStatus }) {
+export default function Orders({ status: appStatus, reloadStatus }) {
   const [status, setStatus] = useState("");
+  const [showAccounts, setShowAccounts] = useState(false);
   const [rows, reload] = useLoad(() => api.get(`/orders${status ? `?status=${status}` : ""}`), [status], 30000);
   const [accts, reloadAccts] = useLoad(() => api.get("/amazon/accounts"), [], 60000);
   const [open, setOpen] = useState(null);
@@ -225,7 +227,18 @@ export default function Orders({ status: appStatus }) {
       <PageHeader
         title="Orders"
         description={needs ? `${needs} order${needs > 1 ? "s" : ""} waiting to be purchased on Amazon.` : "Every eBay order, its costs and fulfillment."}
-        actions={<ActionButton icon={RefreshCw} action={() => api.post("/orders/sync")} onDone={() => setTimeout(reload, 5000)} success="Syncing orders from eBay">Sync from eBay</ActionButton>}
+        actions={
+          <>
+            <div className="flex items-center gap-2 text-[13px] text-ink-2">
+              Ordering <OrderingToggle status={appStatus} reloadStatus={reloadStatus} />
+            </div>
+            <Button icon={Users} onClick={() => setShowAccounts(true)}>
+              Amazon accounts
+              {appStatus && <Badge color={appStatus.amazon.accounts_logged_in ? "green" : "yellow"}>{appStatus.amazon.accounts_logged_in}/{appStatus.amazon.accounts}</Badge>}
+            </Button>
+            <ActionButton icon={RefreshCw} action={() => api.post("/orders/sync")} onDone={() => setTimeout(reload, 5000)} success="Syncing orders from eBay">Sync from eBay</ActionButton>
+          </>
+        }
       />
       <Card padded={false}>
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
@@ -239,6 +252,10 @@ export default function Orders({ status: appStatus }) {
         <Table columns={cols} rows={rows} loading onRowClick={setOpen} initialSort={{ key: "created_at", dir: "desc" }}
           empty={<EmptyState icon={ShoppingBag} title="No orders yet" text="Orders sync from eBay every few minutes once eBay is connected." />} />
       </Card>
+      <Modal open={showAccounts} onClose={() => { setShowAccounts(false); reloadAccts(); }} title="Amazon accounts" wide
+        subtitle="Add the accounts you buy with. Each logs in once in its own browser window; passwords and cards are never stored.">
+        <AmazonAccounts status={appStatus} reloadStatus={reloadStatus} bare />
+      </Modal>
       <Drawer open={!!open} onClose={() => setOpen(null)} title={open ? `Order ${open.ebay_order_id}` : ""}
         subtitle={open && <span className="flex flex-wrap items-center gap-2"><StatusBadge status={open.status} /> {when(open.created_at)} · buyer {open.buyer_username}</span>}>
         {open && <OrderPanel key={open.id} order={open} onChange={() => { reload(); reloadAccts(); }} checkoutMode={appStatus?.checkout_mode} accts={accts} />}

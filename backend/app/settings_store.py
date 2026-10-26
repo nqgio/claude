@@ -36,7 +36,7 @@ SPECS: list[Spec] = [
     Spec("marketplace_id", "EBAY_US", "str", "general", "eBay marketplace", hidden=True),
     Spec("product_source", "amazon_playwright", "choice", "general", "Product data source",
          "Where product data comes from. 'Offline sample data' uses bundled demo pages and never contacts Amazon.",
-         choices=[("amazon_playwright", "Amazon (Playwright browser)"), ("sample", "Offline sample data (demo/testing)")]),
+         choices=[("amazon_playwright", "Amazon"), ("sample", "Sample data (offline)")]),
 
     # --- Pricing ------------------------------------------------------------
     Spec("margin_multiplier", 1.20, "float", "pricing", "Margin multiplier", "e.g. 1.20 = 20% markup on Amazon cost.", min=1.0, max=5.0),
@@ -122,7 +122,7 @@ SPECS: list[Spec] = [
     # --- Orders -------------------------------------------------------------
     Spec("checkout_mode", "assisted", "choice", "orders", "Checkout mode",
          choices=[("assisted", "Assisted (I buy on Amazon, app helps)"), ("auto", "Auto (app places the Amazon order)")]),
-    Spec("amazon_rotation", "round_robin", "choice", "orders", "Amazon account rotation",
+    Spec("amazon_rotation", "round_robin", "choice", "accounts", "Amazon account rotation",
          "How auto-buy picks which of your Amazon accounts places each order.",
          choices=[("round_robin", "Take turns"), ("least_used_today", "Least used today")]),
     Spec("auto_buy_kill_switch", False, "bool", "orders", "Auto-buy kill switch (stop all auto orders)"),

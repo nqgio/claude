@@ -117,6 +117,7 @@ function Sidebar({ status, onNavigate }) {
         {status && (
           <div className="card space-y-2.5 p-3">
             <StatusRow ok={!status.dry_run} warn={status.dry_run} label="Mode" value={status.dry_run ? "Dry run" : "Live"} />
+            <StatusRow ok label="Ordering" value={status.checkout_mode === "auto" ? "Automatic" : "Manual"} />
             <StatusRow ok={status.environment === "production"} warn={status.environment === "sandbox"} label="eBay"
               value={status.ebay.connected ? (status.environment === "sandbox" ? "Sandbox" : "Production") : "Not connected"} />
             <StatusRow ok={status.amazon.status === "ok"} label="Amazon" value={status.amazon.status === "ok" ? "Healthy" : "Paused"} />
@@ -196,7 +197,7 @@ export default function App() {
             <Route path="/" element={<Overview />} />
             <Route path="/listings" element={<Listings />} />
             <Route path="/listings/:id" element={<ListingDetail />} />
-            <Route path="/orders" element={<Orders status={status} />} />
+            <Route path="/orders" element={<Orders status={status} reloadStatus={reload} />} />
             <Route path="/queue" element={<Queue />} />
             <Route path="/best" element={<Best />} />
             <Route path="/activity" element={<Activity />} />

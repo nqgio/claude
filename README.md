@@ -40,7 +40,7 @@ Switch between light, dark and "match system" at the bottom of the sidebar (or S
 2. Double-click **`START (Mac).command`**. If macOS blocks it, right-click it → **Open** → **Open**. If Python 3.11+ isn't installed, it opens the download page; install Python, then double-click the file again.
 3. For auto-start, run `bash service/macos/install-autostart.sh` once in Terminal.
 
-**Try it before connecting anything:** it starts in **dry-run mode**, so nothing happens on eBay. In the dashboard go to **Settings → Product data source → Offline sample data**, then **Queue → Build queue now** to watch the whole flow on 12 sample products.
+**Try it before connecting anything:** it starts in **dry-run mode**, so nothing happens on eBay. In the dashboard go to **Settings → Product data source → Sample data (offline)**, then **Queue → Build queue now** to watch the whole flow on 12 sample products.
 
 When you're ready for the real thing, follow Steps 2–9 below to connect eBay and Amazon.
 
@@ -188,8 +188,10 @@ profit      = ebay_price − amazon_cost − (ebay_price × (1 + buyer_tax%) × 
 
 ### Orders
 
-- **Assisted (default):** a new order shows as **Needs purchase**. Click **Buy / details** → **Open Amazon product page** and use the copy buttons for the buyer's name and address. Enter your Amazon order # and total paid.
-- **Auto:** the app buys on Amazon using your logged-in browser and saved default card. Before ordering it re-checks the live Amazon price and reads the real checkout total. It **won't buy** if:
+Switch between **Manual** and **Automatic** ordering any time with the **Ordering** switch at the top of the Orders page (also in Settings' top row). The **Amazon accounts** button next to it opens your accounts so you can add, log in, set limits and choose the rotation without leaving the page.
+
+- **Manual / assisted (default):** a new order shows as **Needs purchase**. Click **Buy / details** → **Open Amazon product page** and use the copy buttons for the buyer's name and address. Enter your Amazon order # and total paid.
+- **Automatic:** the app buys on Amazon using your logged-in browser and saved default card. Before ordering it re-checks the live Amazon price and reads the real checkout total. It **won't buy** if:
   - the order would be unprofitable,
   - it's over your $ cap, daily count or daily spend,
   - delivery isn't free (if you chose that),
@@ -236,7 +238,7 @@ Run once, after setup:
    - Let it build a queue and run a refresh for a day or two. Watch the **Activity log** for skipped products and their reasons.
 4. **Go live slowly.** Set **Listings per day** to 2–3, turn dry-run off, and watch the first orders closely before raising the number.
 
-**Testing without Amazon:** set *Product data source* to "Offline sample data". The whole pipeline then runs on 12 built-in fake products, including ones that get skipped by each filter, the blocklist and the profit floor.
+**Testing without Amazon:** set *Product data source* to "Sample data (offline)". The whole pipeline then runs on 12 built-in fake products, including ones that get skipped by each filter, the blocklist and the profit floor.
 
 ---
 
