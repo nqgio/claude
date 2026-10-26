@@ -24,22 +24,36 @@ Switch between light, dark and "match system" at the bottom of the sidebar (or S
 
 ---
 
-## What you need
+## Step 1: Quick start (the easy way)
 
-- Your PC (Windows, Mac or Linux) with **Python 3.11+** ([python.org](https://www.python.org/downloads/); on Windows tick "Add python.exe to PATH") and **Node.js 20+** ([nodejs.org](https://nodejs.org)).
-- An eBay seller account and a free **eBay developer account** ([developer.ebay.com](https://developer.ebay.com)).
-- An Amazon account (for tracking and auto-buy).
+**Windows**
+1. **Download:** on GitHub click the green **Code** button → **Download ZIP**. Right-click the ZIP → **Extract All**, and put the folder somewhere permanent (e.g. `Documents\ListingApp`).
+2. **Double-click `START.bat`** in that folder.
+   - The first time, it sets everything up. If Python isn't installed, it installs it, then asks you to double-click `START.bat` once more.
+   - When it's ready, your browser opens the dashboard at **http://localhost:8000**.
+   - Keep the black window open while you use the app. Closing it stops the app.
+   - If Windows shows "Windows protected your PC", click **More info → Run anyway**.
+3. **Optional:** double-click **`Turn on auto-start.bat`** once. The app then runs in the background and starts whenever you log in. After that, just open http://localhost:8000 any time. (`Turn off auto-start.bat` undoes it.)
 
----
+**Mac**
+1. Download and unzip as above.
+2. Double-click **`START (Mac).command`**. If macOS blocks it, right-click it → **Open** → **Open**. If Python 3.11+ isn't installed, it opens the download page; install Python, then double-click the file again.
+3. For auto-start, run `bash service/macos/install-autostart.sh` once in Terminal.
 
-## Step 1: Install
+**Try it before connecting anything:** it starts in **dry-run mode**, so nothing happens on eBay. In the dashboard go to **Settings → Product data source → Offline sample data**, then **Queue → Build queue now** to watch the whole flow on 12 sample products.
 
-1. Download this project (on GitHub: **Code → Download ZIP**, then unzip), or `git clone` it.
-2. Open a terminal in the project folder and run the setup script:
-   - **Windows (PowerShell):** `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1`
-   - **Mac / Linux:** `bash scripts/setup.sh`
+When you're ready for the real thing, follow Steps 2–9 below to connect eBay and Amazon.
 
-   This creates a Python environment, installs everything (including the Chromium browser Playwright uses), builds the dashboard, and creates your `.env` file from `.env.example`.
+<details>
+<summary>Manual install (instead of START.bat)</summary>
+
+You need **Python 3.11+** ([python.org](https://www.python.org/downloads/); on Windows tick "Add python.exe to PATH"). Node.js is only needed if you change the dashboard's code, since it ships pre-built.
+
+- **Windows (PowerShell):** `powershell -ExecutionPolicy Bypass -File scripts\setup.ps1`, then `backend\.venv\Scripts\python.exe backend\run.py`
+- **Mac / Linux:** `bash scripts/setup.sh`, then `backend/.venv/bin/python backend/run.py`
+</details>
+
+You'll also need an eBay seller account, a free **eBay developer account** ([developer.ebay.com](https://developer.ebay.com)), and an Amazon account (for tracking and auto-buy).
 
 ---
 
@@ -101,16 +115,14 @@ What you do:
 
 ## Step 5: Finish `.env`
 
-Open `.env` in Notepad (or any text editor). After Steps 2–4 it should have your App ID, Dev ID, Cert ID and RuName for sandbox (and production when ready), plus the two account-deletion values. Leave the `*_REFRESH_TOKEN` lines **blank**; the app fills them in when you connect. `ANTHROPIC_API_KEY` is optional (see "Listing content" below).
+Open `.env` in Notepad (it's created in the app folder the first time you run `START.bat`; if you don't see it, turn on View → Show → File name extensions / Hidden items) (or any text editor). After Steps 2–4 it should have your App ID, Dev ID, Cert ID and RuName for sandbox (and production when ready), plus the two account-deletion values. Leave the `*_REFRESH_TOKEN` lines **blank**; the app fills them in when you connect. `ANTHROPIC_API_KEY` is optional (see "Listing content" below).
 
 ---
 
 ## Step 6: Start the app and connect eBay
 
-1. Start it:
-   - **Windows:** `backend\.venv\Scripts\python.exe backend\run.py`
-   - **Mac / Linux:** `backend/.venv/bin/python backend/run.py`
-2. Open **http://localhost:8000** → **Settings**.
+1. Start it: double-click `START.bat` (or `START (Mac).command`). If it's already running, just open **http://localhost:8000**.
+2. Go to **Settings**.
 3. Under **eBay connection**, click **Connect eBay**. A new tab opens on eBay. Sign in (for sandbox, use a **sandbox test user**, created on developer.ebay.com → **Sandbox → User accounts**) and click **Agree**.
 4. eBay shows a "you can close this window" page. **Copy the whole address bar** of that page, paste it into **"Finish connecting"**, and click it. The status turns **Connected**. The refresh token is saved to `.env` and renewed automatically (it lasts about 18 months; reconnect if the dashboard says it's expiring).
 5. Under **Listing defaults**, click **Load my eBay business policies** and choose your shipping, return and payment policies. If eBay says you're not opted in to business policies, click **Opt in** and create policies in Seller Hub (`sandbox.ebay.com` for sandbox). Enter your **item location ZIP**.
@@ -190,7 +202,7 @@ profit      = ebay_price − amazon_cost − (ebay_price × (1 + buyer_tax%) × 
 
 Run once, after setup:
 
-- **Windows:** `powershell -ExecutionPolicy Bypass -File service\windows\install-autostart.ps1`
+- **Windows:** double-click **`Turn on auto-start.bat`** (or run `powershell -ExecutionPolicy Bypass -File service\windows\install-autostart.ps1`)
   - Creates a Task Scheduler task that starts the app when you log in and restarts it if it stops.
   - Since your PC never turns off, also turn on automatic sign-in so it comes back after Windows updates. Search "netplwiz", or use Settings → Accounts → Sign-in options.
 - **Mac:** `bash service/macos/install-autostart.sh` (a launchd agent that starts at login and stays running)
@@ -235,4 +247,4 @@ Run once, after setup:
 - Backend: FastAPI + SQLAlchemy (SQLite) + APScheduler, in `backend/app`. Frontend: React + Vite + Tailwind, in `frontend/`.
 - Product sources implement `backend/app/providers/base.py::ProductProvider`.
 - Run tests: `cd backend && .venv/bin/python -m pytest` (Windows: `.venv\Scripts\python -m pytest`). They cover the pricing engine (including the rounding examples), the profit floor, the blocklist, parsing, the dry-run pipeline, and live flows against a mocked eBay API.
-- Dashboard dev server: `cd frontend && npm run dev` (proxies the API to :8000).
+- Dashboard dev server: `cd frontend && npm run dev` (proxies the API to :8000). After changing the dashboard, run `npm run build` and commit `frontend/dist` (it ships pre-built so users don't need Node.js).

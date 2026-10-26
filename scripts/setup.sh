@@ -8,7 +8,8 @@ PY=${PYTHON:-python3}
 backend/.venv/bin/pip install --upgrade pip
 backend/.venv/bin/pip install -r backend/requirements.txt
 backend/.venv/bin/python -m playwright install chromium
-(cd frontend && npm install && npm run build)
+# The dashboard ships pre-built (frontend/dist); rebuild only if it is missing and Node.js is installed.
+if [ ! -f frontend/dist/index.html ] && command -v npm >/dev/null; then (cd frontend && npm install && npm run build); fi
 [ -f .env ] || cp .env.example .env
 echo
 echo "Setup done. Next: fill in .env, then run:  backend/.venv/bin/python backend/run.py"

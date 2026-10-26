@@ -1,0 +1,6 @@
+# Windows scripts are stored with CRLF line endings exactly as committed (no conversion),
+# so they work from a GitHub ZIP download too.
+*.bat -text
+*.ps1 -text
+*.sh text eol=lf
+*.command text eol=lf
