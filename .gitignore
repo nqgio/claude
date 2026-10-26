@@ -1,0 +1,16 @@
+# secrets
+.env
+# runtime data (database, Amazon browser profile, screenshots)
+data/
+# course videos / reference material (large files, never commit)
+course-material/
+*.mp4
+# python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+.pytest_cache/
+# frontend
+frontend/node_modules/
+frontend/dist/

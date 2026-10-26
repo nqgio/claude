@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@layer base {
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  input, select, textarea {
+    @apply rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900;
+  }
+  input[type="checkbox"] { @apply h-4 w-4 p-0; }
+  th { @apply text-left font-medium; }
+}
