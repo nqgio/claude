@@ -377,7 +377,8 @@ def get_queue(day: str | None = None):
             QueueItem.scheduled_at.is_(None), QueueItem.scheduled_at, QueueItem.id).all()
         return {"date": d.isoformat(), "items": [row(i) for i in items],
                 "window": [st.get("posting_window_start"), st.get("posting_window_end")],
-                "listings_per_day": st.get("listings_per_day"), "posted_today": queue.posted_today_count()}
+                "listings_per_day": st.get("listings_per_day"), "posted_today": queue.posted_today_count(),
+                "build": dict(queue.PROGRESS)}
 
 
 class AddAsin(BaseModel):
@@ -421,7 +422,16 @@ def post_now(qid: int):
 
 @router.post("/queue/build")
 def build_queue():
-    return {"started": scheduler.run_now("discovery")}
+    if queue.PROGRESS.get("running"):
+        return {"started": False, "message": "The queue is already being built — see the progress panel."}
+    before = dict(queue.PROGRESS)
+    queue.PROGRESS.update(running=True, step="Starting…", examined=0, added=0, result="", finished_at=None)
+    started = scheduler.run_now("discovery")
+    if not started:
+        queue.PROGRESS.clear()
+        queue.PROGRESS.update(before)
+    return {"started": started, "message": "Building the queue — progress shows on this page." if started
+            else "The queue is already being built."}
 
 
 # ---- orders --------------------------------------------------------------------------------------------------------

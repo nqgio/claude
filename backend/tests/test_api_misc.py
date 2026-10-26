@@ -109,7 +109,8 @@ def test_api_keys_saved_to_env_file(api, monkeypatch):
     from app import config
 
     for k in config.EDITABLE_KEYS:
-        monkeypatch.delenv(k, raising=False)
+        monkeypatch.setenv(k, "")  # registers the original so values saved below are undone after the test
+        monkeypatch.delenv(k)
     if config.ENV_FILE.exists():
         config.ENV_FILE.unlink()
     r = api.put("/api/keys", json={"EBAY_SANDBOX_APP_ID": "  MyApp-SBX-123 ", "EBAY_SANDBOX_CERT_ID": "SBX-secret-abcd1234",
@@ -146,3 +147,16 @@ def test_block_remembers_page_and_solve_endpoint(api, monkeypatch):
     assert opened
     ap.resume("test")
     assert st.get("amazon_paused_until") is None and st.get("amazon_blocked_url") == ""
+
+
+def test_queue_build_progress(sample_source):
+    from app.services import queue
+
+    st.update({"posting_window_start": "00:00", "posting_window_end": "23:59", "listings_per_day": 2})
+    res = queue.build_queue("test")
+    p = queue.PROGRESS
+    assert not p["running"] and p["target"] == 4 and p["added"] == res["added"] == 4
+    assert p["examined"] >= 4 and p["result"].startswith("Done") and p["finished_at"]
+    st.update({"search_keywords": []})
+    queue.build_queue("test")
+    assert "No search keywords" in queue.PROGRESS["result"] and not queue.PROGRESS["running"]

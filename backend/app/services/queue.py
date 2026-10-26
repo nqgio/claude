@@ -76,12 +76,37 @@ def add_candidate(p, ev, source: str, force: bool = False, today: date | None = 
         return item.id
 
 
+# Live progress of the current/last queue build (shown on the Queue page).
+PROGRESS: dict = {"running": False}
+
+
+def _progress(**kw) -> None:
+    PROGRESS.update(kw)
+
+
 def build_queue(trigger: str = "schedule") -> dict:
+    PROGRESS.clear()
+    _progress(running=True, started_at=utcnow().isoformat() + "Z", step="Starting…", examined=0, added=0, target=0,
+              have=0, finished_at=None, result="")
+    try:
+        res = _build_queue(trigger)
+        if not PROGRESS.get("result"):  # keep a more specific message (no keywords, Amazon paused…)
+            _progress(result=f"Done: checked {res.get('examined', 0)} product(s), added {res.get('added', 0)}.")
+        return res
+    except Exception as exc:
+        _progress(result=f"Stopped by an error: {exc}")
+        raise
+    finally:
+        _progress(running=False, finished_at=utcnow().isoformat() + "Z", step="")
+
+
+def _build_queue(trigger: str) -> dict:
     today = local_now().date()
     st.set_internal("last_queue_build_date", today.isoformat())
     terms = _search_terms()
     if not terms:
         activity.warning("queued", "No search keywords or categories set (Settings → Product finder) — queue not built")
+        _progress(result="No search keywords set (Settings → Product finder).")
         return {"added": 0}
     per_day = int(st.get("listings_per_day"))
     target = math.ceil(per_day * float(st.get("queue_backup_factor")))
@@ -97,6 +122,7 @@ def build_queue(trigger: str = "schedule") -> dict:
         have = sum(1 for q in todays if q.status in ("queued", "scheduled", "posting", "posted"))
     seen |= active_asins()
     activity.info("queued", f"Building today's queue ({trigger}): want {target}, have {have}")
+    _progress(target=target, have=have)
     provider, bl = get_provider(), Blocklist.load()
     added, examined = 0, 0
     try:
@@ -104,6 +130,7 @@ def build_queue(trigger: str = "schedule") -> dict:
             for page in range(1, int(st.get("search_pages_per_term")) + 1):
                 if have + added >= target:
                     break
+                _progress(step=f"Searching Amazon for “{term or cat}” (page {page})")
                 try:
                     results = provider.search(term, cat, page)
                 except (SourceBlocked, SourcePaused):
@@ -120,6 +147,7 @@ def build_queue(trigger: str = "schedule") -> dict:
                         continue
                     seen.add(r.asin)
                     examined += 1
+                    _progress(examined=examined, step=f"Checking {r.asin}: {r.title[:70]}")
                     why = search_result_reasons(r)
                     m = bl.check("", r.title)
                     if m:
@@ -140,12 +168,17 @@ def build_queue(trigger: str = "schedule") -> dict:
                         continue
                     add_candidate(p, ev, "auto", today=today)
                     added += 1
+                    _progress(added=added)
                     b = ev["breakdown"]
                     activity.info("found", f"Queued {p.asin} '{p.title[:60]}' — Amazon ${b['amazon_price']:.2f} → "
                                            f"eBay ${b['ebay_price']:.2f}, profit ${b['profit']:.2f}", asin=p.asin)
     except (SourceBlocked, SourcePaused) as exc:
         activity.warning("queued", f"Queue build stopped early: {exc}")
+        _progress(result=f"Stopped early: Amazon is paused ({exc}). Checked {examined}, added {added}.")
+        schedule_today()
+        return {"added": added, "examined": examined, "stopped": str(exc)}
     activity.info("queued", f"Queue build done: examined {examined}, added {added}")
+    _progress(step="Scheduling posting times…")
     schedule_today()
     return {"added": added, "examined": examined}
 

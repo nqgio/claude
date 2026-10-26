@@ -1,4 +1,5 @@
-import { Clock, Eye, ListOrdered, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, Eye, ListOrdered, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../api";
 import { useToast } from "../components/toast";
@@ -7,7 +8,8 @@ import {
 } from "../components/ui";
 
 export default function Queue() {
-  const [data, reload] = useLoad(() => api.get("/queue"), [], 15000);
+  const [data, reload] = useLoad(() => api.get("/queue"), [], 4000);
+  const build = data?.build || {};
   const [asin, setAsin] = useState("");
   const [force, setForce] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -70,12 +72,13 @@ export default function Queue() {
         title="Queue"
         description={data ? `Today's products, posted at random times between ${data.window[0]} and ${data.window[1]}.` : "Today's products."}
         actions={
-          <ActionButton kind="primary" icon={Sparkles} action={() => api.post("/queue/build")} onDone={() => setTimeout(reload, 5000)}
-            success="Building the queue. This takes a while because Amazon requests are paced.">
-            Build queue now
+          <ActionButton kind="primary" icon={build.running ? Loader2 : Sparkles} disabled={build.running}
+            action={() => api.post("/queue/build")} onDone={() => setTimeout(reload, 1000)}>
+            {build.running ? "Building…" : "Build queue now"}
           </ActionButton>
         }
       />
+      <BuildProgress build={build} />
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="card p-4 md:col-span-1">
           <div className="text-[12px] font-medium text-ink-2">Posted today</div>
@@ -159,6 +162,43 @@ function Preview({ item }) {
         <h4 className="mb-2 text-[13px] font-semibold">Description</h4>
         <iframe title="description" sandbox="" className="h-80 w-full rounded-lg border border-line bg-white" srcDoc={p.description_html} />
       </div>
+    </div>
+  );
+}
+
+
+function BuildProgress({ build }) {
+  if (!build.running && !build.result) return null;
+  const pct = build.target ? Math.min(100, ((build.have + build.added) / build.target) * 100) : 0;
+  if (!build.running) {
+    return (
+      <div className="card mb-6 flex flex-wrap items-center gap-3 px-4 py-3 text-[13px]">
+        <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-emerald-500" />
+        <span className="flex-1"><strong className="font-semibold">Last queue build:</strong> {build.result}</span>
+        <Link to="/activity" className="text-[12.5px] font-medium text-accent-ink hover:underline">See details in the Activity log →</Link>
+      </div>
+    );
+  }
+  return (
+    <div className="card mb-6 border-accent/40 p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Loader2 className="h-4.5 w-4.5 shrink-0 animate-spin text-accent" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold">Building the queue…</div>
+          <div className="mt-0.5 truncate text-xs text-ink-2">{build.step || "Starting…"}</div>
+        </div>
+        <div className="text-right text-[12.5px] text-ink-2">
+          <div><strong className="tnum text-ink">{build.added}</strong>{build.target ? ` of ${build.target - build.have}` : ""} added</div>
+          <div className="tnum text-xs text-ink-3">{build.examined} product{build.examined === 1 ? "" : "s"} checked</div>
+        </div>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-3">
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.max(pct, 3)}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-ink-3">
+        Amazon pages are read slowly on purpose, so this can take an hour or more. You can leave this page; it keeps going.
+        Each product found or skipped (and why) is listed in the <Link to="/activity" className="text-accent-ink hover:underline">Activity log</Link>.
+      </p>
     </div>
   );
 }
