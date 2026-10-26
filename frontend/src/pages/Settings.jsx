@@ -1,5 +1,5 @@
 import {
-  Ban, Bot, Calculator, CheckCircle2, Circle, Filter, Globe, Hand, LogIn, Monitor, Moon, Palette, Plug, RefreshCcw, Search, ShieldCheck,
+  Ban, Bot, Calculator, KeyRound, CheckCircle2, Circle, Filter, Globe, Hand, LogIn, Monitor, Moon, Palette, Plug, RefreshCcw, Search, ShieldCheck,
   ShoppingCart, SlidersHorizontal, Store, Sun, Tag, Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +19,7 @@ const GROUPS = [
   ["amazon", "Amazon scraper", Globe, "How politely the app reads Amazon pages."],
 ];
 const NAV = [
-  ["mode", "Mode", SlidersHorizontal], ["connections", "eBay & Amazon", Plug], ...GROUPS.map(([k, l, i]) => [k, l, i]),
+  ["mode", "Mode", SlidersHorizontal], ["keys", "API keys", KeyRound], ["connections", "eBay & Amazon", Plug], ...GROUPS.map(([k, l, i]) => [k, l, i]),
   ["blocklist", "Blocklist", Ban], ["appearance", "Appearance", Palette],
 ];
 const POLICY_KEYS = { fulfillment_policy_id: "fulfillment", return_policy_id: "return", payment_policy_id: "payment" };
@@ -75,6 +75,94 @@ function Field({ spec, value, onChange, policies }) {
   );
 }
 
+const KEY_FIELDS = [
+  ["APP_ID", "App ID", "Also called Client ID"],
+  ["DEV_ID", "Dev ID", ""],
+  ["CERT_ID", "Cert ID", "Also called Client Secret"],
+  ["RUNAME", "RuName", "From User Tokens → Get a Token from eBay via Your Application"],
+];
+
+function KeyInput({ name, label, help, info, value, onChange }) {
+  return (
+    <div>
+      <label htmlFor={`k-${name}`} className="mb-1.5 flex items-center justify-between gap-2 text-[12.5px] font-medium text-ink">
+        {label}
+        {info?.set ? <Badge color="green" dot>Saved</Badge> : <Badge color="gray">Not set</Badge>}
+      </label>
+      <input id={`k-${name}`} type={info?.secret ? "password" : "text"} autoComplete="off" spellCheck={false}
+        className="w-full font-mono text-xs" value={value || ""} onChange={(e) => onChange(e.target.value)}
+        placeholder={info?.set ? `${info.display}  (paste to replace)` : "Paste here"} />
+      {help && <p className="mt-1 text-xs text-ink-3">{help}</p>}
+    </div>
+  );
+}
+
+function ApiKeys({ reloadStatus }) {
+  const [data, reload] = useLoad(() => api.get("/keys"), []);
+  const [env, setEnv] = useState("SANDBOX");
+  const [vals, setVals] = useState({});
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const k = data?.keys || {};
+  const set = (name) => (v) => setVals((x) => ({ ...x, [name]: v }));
+  const dirty = Object.values(vals).some((v) => v && v.trim());
+  const save = async () => {
+    setBusy(true);
+    try {
+      const r = await api.put("/keys", vals);
+      setVals({});
+      reload();
+      reloadStatus && reloadStatus();
+      toast(r.changed.length ? `Saved ${r.changed.length} key${r.changed.length > 1 ? "s" : ""}. They're active now, no restart needed.` : "Nothing to save");
+    } catch (e) {
+      toast(e.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const genToken = () => {
+    const a = new Uint8Array(30);
+    crypto.getRandomValues(a);
+    set("EBAY_VERIFICATION_TOKEN")(Array.from(a, (b) => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[b % 62]).join("") + "_" + Date.now().toString(36));
+  };
+  return (
+    <Card title="API keys" icon={KeyRound}
+      description="Paste your keys from developer.ebay.com → Application Keysets. They're saved in the .env file on this PC and never shown in full again."
+      actions={<Segmented value={env} onChange={setEnv} options={[["SANDBOX", "Sandbox keys"], ["PROD", "Production keys"]]} />}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        {KEY_FIELDS.map(([suffix, label, help]) => {
+          const name = `EBAY_${env}_${suffix}`;
+          return <KeyInput key={name} name={name} label={label} help={help} info={k[name]} value={vals[name]} onChange={set(name)} />;
+        })}
+      </div>
+      {env === "PROD" && (
+        <div className="mt-6 border-t border-line pt-5">
+          <div className="mb-3 text-[13px] font-semibold">Account deletion notifications <span className="font-normal text-ink-3">(required for production; see README Step 4)</span></div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <KeyInput name="EBAY_VERIFICATION_TOKEN" label="Verification token" info={k.EBAY_VERIFICATION_TOKEN}
+                value={vals.EBAY_VERIFICATION_TOKEN} onChange={set("EBAY_VERIFICATION_TOKEN")} help="32–80 letters/numbers. Enter the same value on eBay's site." />
+              <Button size="sm" kind="ghost" className="mt-1" onClick={genToken}>Generate one for me</Button>
+              {vals.EBAY_VERIFICATION_TOKEN && <p className="mt-1 font-mono text-[11px] break-all text-ink-2">{vals.EBAY_VERIFICATION_TOKEN}</p>}
+            </div>
+            <KeyInput name="EBAY_DELETION_ENDPOINT_URL" label="Endpoint URL" info={k.EBAY_DELETION_ENDPOINT_URL}
+              value={vals.EBAY_DELETION_ENDPOINT_URL} onChange={set("EBAY_DELETION_ENDPOINT_URL")} help="https://…/ebay/account-deletion (your public tunnel to port 8001)" />
+          </div>
+        </div>
+      )}
+      <div className="mt-6 border-t border-line pt-5 sm:w-1/2 sm:pr-2.5">
+        <KeyInput name="ANTHROPIC_API_KEY" label="Claude API key (optional)" info={k.ANTHROPIC_API_KEY}
+          value={vals.ANTHROPIC_API_KEY} onChange={set("ANTHROPIC_API_KEY")} help="Only needed for “Write titles/descriptions with Claude”." />
+      </div>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Button kind="primary" busy={busy} disabled={!dirty} onClick={save}>Save keys</Button>
+        {dirty && <Button kind="ghost" onClick={() => setVals({})}>Clear</Button>}
+        <span className="text-xs text-ink-3">Empty boxes keep what's already saved. File: <code className="font-mono">{data?.file}</code></span>
+      </div>
+    </Card>
+  );
+}
+
 function Step({ done, children }) {
   return (
     <li className="flex gap-3">
@@ -94,7 +182,7 @@ function Connections({ status, reloadStatus }) {
       <Card title={`eBay · ${status.environment}`} icon={Store} actions={<Badge color={e.connected ? "green" : "yellow"} dot>{e.connected ? "Connected" : "Not connected"}</Badge>}>
         <ol className="space-y-4">
           <Step done={e.keys_present && e.runame_present}>
-            <div className="font-medium">Keys in <code className="rounded bg-surface-3 px-1 text-xs">.env</code></div>
+            <div className="font-medium">API keys saved <a href="#keys" className="ml-1 text-xs font-normal text-accent-ink hover:underline">(enter them above)</a></div>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <Badge color={e.keys_present ? "green" : "red"}>App ID / Cert ID</Badge>
               <Badge color={e.runame_present ? "green" : "red"}>RuName</Badge>
@@ -355,6 +443,8 @@ export default function Settings({ status, reloadStatus }) {
               </div>
             </div>
           </section>
+
+          <section id="keys" className="scroll-mt-6"><ApiKeys reloadStatus={reloadStatus} /></section>
 
           <section id="connections" className="scroll-mt-6"><Connections status={status} reloadStatus={reloadStatus} /></section>
 

@@ -61,7 +61,7 @@ You'll also need an eBay seller account, a free **eBay developer account** ([dev
 
 1. Sign in at [developer.ebay.com](https://developer.ebay.com) → your name (top right) → **Application Keysets** (sometimes shown as **Application Keys**).
 2. Create a keyset if you don't have one. You get **two**: **Sandbox** and **Production**. Production may need you to finish the account-deletion step (Step 4) before eBay enables it.
-3. Each keyset shows three values. Copy them into `.env`:
+3. Each keyset shows three values. In the dashboard, open **Settings → API keys**, choose **Sandbox keys** or **Production keys**, paste them into the boxes, and click **Save keys**. They take effect immediately. (The app stores them in the `.env` file for you; you can also edit that file by hand.)
 
 | eBay calls it | Also shown as | Goes in `.env` as |
 |---|---|---|
@@ -69,7 +69,7 @@ You'll also need an eBay seller account, a free **eBay developer account** ([dev
 | Dev ID | | `EBAY_SANDBOX_DEV_ID` / `EBAY_PROD_DEV_ID` |
 | Cert ID | Client Secret | `EBAY_SANDBOX_CERT_ID` / `EBAY_PROD_CERT_ID` |
 
-Keep the quotes, e.g. `EBAY_SANDBOX_APP_ID="YourName-MyApp-SBX-1234abcd-5678efgh"`. **Never share `.env`.** It's already excluded from git.
+**Never share `.env`.** It holds your keys, and it's already excluded from git.
 
 ---
 
@@ -85,7 +85,7 @@ The RuName is the name eBay gives your sign-in redirect. Do this **once for Sand
    - **Your auth accepted URL:** **keep eBay's default** (eBay's own "Thank you / authorization successful" page on `signin.ebay.com`, or `signin.sandbox.ebay.com` for sandbox). The app reads the code from that page's address, so no public website is needed.
    - **Your auth declined URL:** keep eBay's default.
    - Make sure **OAuth** is selected (not "Auth'n'Auth").
-4. Save. Copy the **RuName (eBay Redirect URL name)**, which looks like `Your_Name-YourName-MyApp-SBX-abcdefgh`, into `.env` as `EBAY_SANDBOX_RUNAME` or `EBAY_PROD_RUNAME`.
+4. Save. Copy the **RuName (eBay Redirect URL name)**, which looks like `Your_Name-YourName-MyApp-SBX-abcdefgh`, into the **RuName** box in **Settings → API keys**.
 
 ---
 
@@ -103,12 +103,7 @@ What you do:
    - Run `ngrok http --url=your-name.ngrok-free.app 8001`, and add it to your PC's startup (e.g. in the same Task Scheduler as Step 8) so it's always on.
    - Alternative: Cloudflare Tunnel with your own domain.
 2. Pick a verification token: any **32–80 characters** of letters, numbers, `_` or `-`. A password generator works.
-3. In `.env` set:
-   ```
-   EBAY_VERIFICATION_TOKEN="your-32-to-80-character-token"
-   EBAY_DELETION_ENDPOINT_URL="https://your-name.ngrok-free.app/ebay/account-deletion"
-   ```
-   Restart the app.
+3. In **Settings → API keys → Production keys**, fill in **Verification token** ("Generate one for me" makes one) and **Endpoint URL** (e.g. `https://your-name.ngrok-free.app/ebay/account-deletion`), then click **Save keys**.
 4. On developer.ebay.com → **Alerts & Notifications** (Application Keysets page, for the **production** keyset) → **Marketplace Account Deletion**: enter your email, the **same endpoint URL**, and the **same verification token**, then **Save**. eBay immediately sends a test challenge; the app answers it automatically. Click **Send Test Notification** to confirm.
 
 ---

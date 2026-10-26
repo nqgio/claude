@@ -57,6 +57,15 @@ def ebay_keys(environment: str) -> dict:
 def save_env_value(name: str, value: str) -> None:
     """Persist a value (e.g. a new OAuth refresh token) to .env and the live process."""
     if not ENV_FILE.exists():
-        ENV_FILE.touch()
+        example = PROJECT_DIR / ".env.example"
+        ENV_FILE.write_text(example.read_text() if example.exists() else "")
     set_key(str(ENV_FILE), name, value, quote_mode="always")
     os.environ[name] = value
+
+
+# Keys that can be entered from the dashboard (Settings → API keys). Secret ones are never sent back in full.
+EDITABLE_KEYS = {
+    "EBAY_SANDBOX_APP_ID": False, "EBAY_SANDBOX_DEV_ID": False, "EBAY_SANDBOX_CERT_ID": True, "EBAY_SANDBOX_RUNAME": False,
+    "EBAY_PROD_APP_ID": False, "EBAY_PROD_DEV_ID": False, "EBAY_PROD_CERT_ID": True, "EBAY_PROD_RUNAME": False,
+    "EBAY_VERIFICATION_TOKEN": True, "EBAY_DELETION_ENDPOINT_URL": False, "ANTHROPIC_API_KEY": True,
+}

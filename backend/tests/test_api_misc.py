@@ -101,3 +101,31 @@ def test_captcha_pauses_amazon_jobs_then_resumes():
     st.set_internal("amazon_paused_until", (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat())
     check_not_paused()
     assert st.get("amazon_paused_until") is None
+
+
+def test_api_keys_saved_to_env_file(api, monkeypatch):
+    import os
+
+    from app import config
+
+    for k in config.EDITABLE_KEYS:
+        monkeypatch.delenv(k, raising=False)
+    if config.ENV_FILE.exists():
+        config.ENV_FILE.unlink()
+    r = api.put("/api/keys", json={"EBAY_SANDBOX_APP_ID": "  MyApp-SBX-123 ", "EBAY_SANDBOX_CERT_ID": "SBX-secret-abcd1234",
+                                  "EBAY_SANDBOX_RUNAME": ""})
+    assert r.status_code == 200 and set(r.json()["changed"]) == {"EBAY_SANDBOX_APP_ID", "EBAY_SANDBOX_CERT_ID"}
+    keys = r.json()["keys"]
+    assert keys["EBAY_SANDBOX_APP_ID"]["display"] == "MyApp-SBX-123"
+    assert keys["EBAY_SANDBOX_CERT_ID"]["display"].endswith("1234") and "secret" not in keys["EBAY_SANDBOX_CERT_ID"]["display"]
+    assert not keys["EBAY_SANDBOX_RUNAME"]["set"]
+    text = config.ENV_FILE.read_text()
+    assert "EBAY_SANDBOX_APP_ID='MyApp-SBX-123'" in text and "EBAY_PROD_APP_ID" in text  # created from .env.example
+    assert os.environ["EBAY_SANDBOX_CERT_ID"] == "SBX-secret-abcd1234"  # live without restart
+    s = api.get("/api/status").json()["ebay"]
+    assert s["keys_present"] and not s["runame_present"]
+    # blank never wipes; bad values rejected
+    api.put("/api/keys", json={"EBAY_SANDBOX_APP_ID": ""})
+    assert os.environ["EBAY_SANDBOX_APP_ID"] == "MyApp-SBX-123"
+    assert api.put("/api/keys", json={"EBAY_VERIFICATION_TOKEN": "short"}).status_code == 400
+    assert api.put("/api/keys", json={"NOT_A_KEY": "x"}).status_code == 400

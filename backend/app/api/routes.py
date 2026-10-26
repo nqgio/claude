@@ -97,6 +97,49 @@ def pricing_preview(body: PricePreview):
         _err(exc)
 
 
+# ---- API keys (stored in .env) ---------------------------------------------------------------------
+
+def _mask(name: str, value: str) -> str:
+    if not value:
+        return ""
+    if config.EDITABLE_KEYS[name]:
+        return "•" * 8 + value[-4:]
+    return value
+
+
+@router.get("/keys")
+def get_keys():
+    return {"file": str(config.ENV_FILE), "keys": {k: {"set": bool(config.env(k)), "display": _mask(k, config.env(k)),
+                                                     "secret": secret} for k, secret in config.EDITABLE_KEYS.items()}}
+
+
+@router.put("/keys")
+def put_keys(values: dict[str, str]):
+    """Save keys into .env. Blank values are ignored (so an empty box never wipes a saved key)."""
+    import re
+
+    changed = []
+    for name, value in values.items():
+        if name not in config.EDITABLE_KEYS:
+            raise HTTPException(400, f"unknown key {name}")
+        value = (value or "").strip().strip('"').strip("'")
+        if not value:
+            continue
+        if any(c in value for c in "\r\n"):
+            raise HTTPException(400, f"{name} can't contain line breaks")
+        if name == "EBAY_VERIFICATION_TOKEN" and not re.fullmatch(r"[A-Za-z0-9_-]{32,80}", value):
+            raise HTTPException(400, "Verification token must be 32–80 letters, numbers, _ or -")
+        if name == "EBAY_DELETION_ENDPOINT_URL" and not value.startswith("https://"):
+            raise HTTPException(400, "Deletion endpoint URL must start with https://")
+        config.save_env_value(name, value)
+        changed.append(name)
+    if changed:
+        with ebay_client._token_lock:
+            ebay_client._tokens.clear()  # new keys → fetch fresh tokens
+        activity.info("settings", "API keys updated: " + ", ".join(changed))
+    return {**get_keys(), "changed": changed}
+
+
 # ---- eBay connection ----------------------------------------------------------------------------
 
 @router.get("/ebay/connect-url")
