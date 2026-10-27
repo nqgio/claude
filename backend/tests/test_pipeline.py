@@ -659,3 +659,31 @@ def test_one_bad_new_order_does_not_block_the_others(live, monkeypatch):
     assert len(handled) == 2
     with session_scope() as s:
         assert "could not finish processing" in s.get(Order, handled[0]).flag_reason
+
+
+def test_unposted_items_carry_over_to_the_next_day(sample_source, monkeypatch):
+    from datetime import timedelta
+
+    from app.models import utcnow
+    from app.providers import get_provider
+
+    _window_all_day()
+    st.update({"listings_per_day": 2, "queue_backup_factor": 3})
+    assert queue.build_queue("test")["added"] == 6
+    with session_scope() as s:
+        items = s.query(QueueItem).order_by(QueueItem.id).all()
+        for q in items:  # pretend all of this was found yesterday
+            q.queue_date = q.queue_date - timedelta(days=1)
+        items[0].created_at = utcnow() - timedelta(days=8)  # found over a week ago
+        ids = [q.id for q in items]
+    searches = []
+    real = get_provider().search
+    monkeypatch.setattr(get_provider(), "search", lambda *a: searches.append(a) or real(*a))
+    res = queue.build_queue("test")
+    assert res["added"] == 1 and len(searches) == 1      # only the one expired item had to be replaced
+    with session_scope() as s:
+        old = {q.id: q for q in s.query(QueueItem).filter(QueueItem.id.in_(ids))}
+        assert old[ids[0]].status == "expired"
+        carried = [old[i] for i in ids[1:]]
+        assert all(q.queue_date == queue.local_now().date() and q.message.startswith("carried over") for q in carried)
+        assert sum(1 for q in carried if q.status == "scheduled") >= 1

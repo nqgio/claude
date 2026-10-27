@@ -83,7 +83,7 @@ export default function Queue() {
       <PageHeader
         title="Queue"
         description={data ? (isToday ? `Today's products, posted at random times between ${data.window[0]} and ${data.window[1]}.`
-          : `Queue for ${nice(data.date)}. Posted items are on the Listings page; anything not posted that day expired.`) : "Today's products."}
+          : `Queue for ${nice(data.date)}. Posted items are on the Listings page; anything not posted that day moved to the next day's queue.`) : "Today's products."}
         actions={
           <>
           <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-xs">

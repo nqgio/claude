@@ -78,6 +78,9 @@ def add_candidate(p, ev, source: str, force: bool = False, today: date | None = 
         return item.id
 
 
+CARRY_OVER_DAYS = 7  # unposted auto-found products stay in the queue this long
+
+
 # Live progress of the current/last queue build (shown on the Queue page).
 PROGRESS: dict = {"running": False}
 
@@ -123,20 +126,27 @@ def _build_queue(trigger: str) -> dict:
         return {"added": 0}
     per_day = int(st.get("listings_per_day"))
     target = math.ceil(per_day * float(st.get("queue_backup_factor")))
+    listed = active_asins()
     with session_scope() as s:
-        # Unposted auto items from earlier days expire; manual ones carry over to today.
+        # Products found on earlier days but not posted yet carry over (no need to find them on Amazon again);
+        # they're re-checked on Amazon right before posting. Auto-found ones expire after a week.
+        stale = utcnow() - timedelta(days=CARRY_OVER_DAYS)
         for old in s.query(QueueItem).filter(QueueItem.queue_date < today, QueueItem.status.in_(["queued", "scheduled"])):
-            if old.source == "manual":
-                old.queue_date, old.status, old.scheduled_at = today, "queued", None
+            if old.asin in listed:
+                old.status, old.message = "removed", "already listed"
+            elif old.source == "auto" and old.created_at < stale:
+                old.status, old.message = "expired", f"not posted within {CARRY_OVER_DAYS} days"
             else:
-                old.status, old.message = "expired", "not posted on its day"
+                if not old.message.startswith("carried over"):
+                    old.message = f"carried over from {old.queue_date:%b %d}"
+                old.queue_date, old.status, old.scheduled_at = today, "queued", None
         todays = s.query(QueueItem).filter(QueueItem.queue_date == today).all()
         seen = {q.asin for q in todays}
         dry = _dry_run_listing_ids(s, todays)
         # Dry-run previews don't use up the day: in dry-run you can keep building and testing.
         have = sum(1 for q in todays if q.status in ("queued", "scheduled", "posting")
                    or (q.status == "posted" and q.listing_id not in dry))
-    seen |= active_asins()
+    seen |= listed
     activity.info("queued", f"Building today's queue ({trigger}): want {target}, have {have}")
     _progress(target=target, have=have)
     provider, bl = get_provider(), Blocklist.load()
