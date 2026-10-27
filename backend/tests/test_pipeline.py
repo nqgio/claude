@@ -517,3 +517,28 @@ def test_big_price_drop_is_held_for_review(sample_source, calls, monkeypatch):
     assert changed == [suggested]
     with session_scope() as s:
         assert not s.get(Listing, lid).flagged
+
+
+def test_queue_takes_turns_between_keywords(sample_source, monkeypatch):
+    """One product per keyword per round, in a random keyword order, so one keyword can't fill the queue."""
+    from app.providers import amazon_parser, get_provider
+
+    _window_all_day()
+    st.update({"search_keywords": ["garlic", "lamps"], "listings_per_day": 4, "queue_backup_factor": 1})
+    by_term = {"garlic": {"B0SAMPLE01", "B0SAMPLE02", "B0SAMPLE03"}, "lamps": {"B0SAMPLE10", "B0SAMPLE11", "B0SAMPLE12"}}
+    searches = []
+
+    def search(term, cat, page):
+        searches.append((term, page))
+        rs = amazon_parser.parse_search(sample.search_html(term)) if page == 1 else []
+        return [r for r in rs if r.asin in by_term[term]]
+
+    monkeypatch.setattr(get_provider(), "search", search)
+    assert queue.build_queue("test")["added"] == 4
+    with session_scope() as s:
+        items = s.query(QueueItem).all()
+        terms = [q.search_term for q in items]
+        assert terms.count("garlic") == 2 and terms.count("lamps") == 2
+        scheduled = [q.search_term for q in sorted(items, key=lambda q: q.scheduled_at)]
+    assert scheduled[0] != scheduled[1] and scheduled[1] != scheduled[2]  # posts alternate keywords
+    assert sorted(searches) == [("garlic", 1), ("lamps", 1)]  # each keyword searched once, results reused

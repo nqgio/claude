@@ -66,6 +66,7 @@ class QueueItem(Base):
     # queued -> scheduled -> posting -> posted | failed ; removed | skipped
     status: Mapped[str] = mapped_column(String(20), default="queued", index=True)
     source: Mapped[str] = mapped_column(String(20), default="auto")  # auto|manual
+    search_term: Mapped[str] = mapped_column(String(200), default="")  # keyword/category that found it
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # UTC
     title: Mapped[str] = mapped_column(Text, default="")
     amazon_price: Mapped[float | None] = mapped_column(Float, nullable=True)

@@ -42,6 +42,7 @@ export default function Queue() {
             <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-3">
               <span className="font-mono">{r.asin}</span>
               {r.source === "manual" && <Badge color="indigo">Manual</Badge>}
+              {r.search_term && <span className="truncate">· {r.search_term}</span>}
             </div>
           </div>
         </div>

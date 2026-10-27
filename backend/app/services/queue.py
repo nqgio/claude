@@ -63,14 +63,15 @@ def _ebay_available() -> bool:
     return bool(k["app_id"] and k["cert_id"])
 
 
-def add_candidate(p, ev, source: str, force: bool = False, today: date | None = None) -> int:
+def add_candidate(p, ev, source: str, force: bool = False, today: date | None = None, search_term: str = "") -> int:
     today = today or local_now().date()
     preview = _preview(p, ev)
     preview["force"] = force
     with session_scope() as s:
         item = QueueItem(asin=p.asin, queue_date=today, status="queued", source=source, title=preview["title"],
                          amazon_price=p.price, ebay_price=ev["breakdown"]["ebay_price"],
-                         expected_profit=ev["breakdown"]["profit"], breakdown=ev["breakdown"], preview=preview)
+                         expected_profit=ev["breakdown"]["profit"], breakdown=ev["breakdown"], preview=preview,
+                         search_term=search_term)
         s.add(item)
         s.flush()
         return item.id
@@ -136,57 +137,85 @@ def _build_queue(trigger: str) -> dict:
     _progress(target=target, have=have)
     provider, bl = get_provider(), Blocklist.load()
     added, examined = 0, 0
+    pages = int(st.get("search_pages_per_term"))
+    # Variety: keywords are visited in a random order, one product per keyword per round, so no
+    # single keyword fills the queue. Each keyword's results are kept between rounds (no extra searches).
+    lanes = [{"term": term, "cat": cat, "label": term or cat, "page": 0, "results": [], "done": False}
+             for term, cat in terms]
+
+    def next_result(lane):
+        """The next unseen search result for this keyword, searching its next page when needed."""
+        while True:
+            while lane["results"]:
+                r = lane["results"].pop(0)
+                if r.asin not in seen:
+                    return r
+            if lane["page"] >= pages:
+                return None
+            if STOP_EVENT.is_set():
+                raise Stopped("stopped by you")
+            lane["page"] += 1
+            _progress(step=f"Searching Amazon for “{lane['label']}” (page {lane['page']})")
+            try:
+                lane["results"] = list(provider.search(lane["term"], lane["cat"], lane["page"]) or [])
+            except (SourceBlocked, SourcePaused):
+                raise
+            except ProviderError as exc:
+                activity.error("amazon", f"Search '{lane['label']}' page {lane['page']} failed: {exc}")
+                return None
+            if not lane["results"]:
+                return None
+
+    def take_one(lane) -> bool:
+        """Check this keyword's results until one product qualifies (True) or it runs out (False)."""
+        nonlocal examined
+        while True:
+            r = next_result(lane)
+            if r is None:
+                lane["done"] = True
+                return False
+            if STOP_EVENT.is_set():
+                raise Stopped("stopped by you")
+            seen.add(r.asin)
+            examined += 1
+            _progress(examined=examined, step=f"Checking {r.asin} (“{lane['label']}”): {r.title[:70]}")
+            why = search_result_reasons(r)
+            m = bl.check("", r.title)
+            if m:
+                why.append(m.reason())
+            if why:
+                activity.info("skipped", f"Skipped {r.asin}: {'; '.join(why)}", asin=r.asin)
+                continue
+            try:
+                p, _ = products.fetch(r.asin)
+            except (SourceBlocked, SourcePaused):
+                raise
+            except ProviderError as exc:
+                activity.error("amazon", f"Could not load {r.asin}: {exc}", asin=r.asin)
+                continue
+            ev = evaluate(p, blocklist=bl)
+            if not ev["ok"]:
+                activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {'; '.join(ev['reasons'])}", asin=p.asin)
+                continue
+            add_candidate(p, ev, "auto", today=today, search_term=lane["label"])
+            b = ev["breakdown"]
+            activity.info("found", f"Queued {p.asin} '{p.title[:60]}' from “{lane['label']}” — Amazon "
+                                   f"${b['amazon_price']:.2f} → eBay ${b['ebay_price']:.2f}, profit ${b['profit']:.2f}",
+                          asin=p.asin)
+            return True
+
     try:
-        for term, cat in terms:
-            for page in range(1, int(st.get("search_pages_per_term")) + 1):
+        while have + added < target:
+            active = [l for l in lanes if not l["done"]]
+            if not active:
+                break
+            random.shuffle(active)  # a new random keyword order every round
+            for lane in active:
                 if have + added >= target:
                     break
-                if STOP_EVENT.is_set():
-                    raise Stopped("stopped by you")
-                _progress(step=f"Searching Amazon for “{term or cat}” (page {page})")
-                try:
-                    results = provider.search(term, cat, page)
-                except (SourceBlocked, SourcePaused):
-                    raise
-                except ProviderError as exc:
-                    activity.error("amazon", f"Search '{term or cat}' page {page} failed: {exc}")
-                    break
-                if not results:
-                    break
-                for r in results:
-                    if have + added >= target:
-                        break
-                    if r.asin in seen:
-                        continue
-                    if STOP_EVENT.is_set():
-                        raise Stopped("stopped by you")
-                    seen.add(r.asin)
-                    examined += 1
-                    _progress(examined=examined, step=f"Checking {r.asin}: {r.title[:70]}")
-                    why = search_result_reasons(r)
-                    m = bl.check("", r.title)
-                    if m:
-                        why.append(m.reason())
-                    if why:
-                        activity.info("skipped", f"Skipped {r.asin}: {'; '.join(why)}", asin=r.asin)
-                        continue
-                    try:
-                        p, _ = products.fetch(r.asin)
-                    except (SourceBlocked, SourcePaused):
-                        raise
-                    except ProviderError as exc:
-                        activity.error("amazon", f"Could not load {r.asin}: {exc}", asin=r.asin)
-                        continue
-                    ev = evaluate(p, blocklist=bl)
-                    if not ev["ok"]:
-                        activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {'; '.join(ev['reasons'])}", asin=p.asin)
-                        continue
-                    add_candidate(p, ev, "auto", today=today)
+                if take_one(lane):
                     added += 1
                     _progress(added=added)
-                    b = ev["breakdown"]
-                    activity.info("found", f"Queued {p.asin} '{p.title[:60]}' — Amazon ${b['amazon_price']:.2f} → "
-                                           f"eBay ${b['ebay_price']:.2f}, profit ${b['profit']:.2f}", asin=p.asin)
     except Stopped:
         activity.info("queued", f"Queue build stopped by you: checked {examined}, added {added} (kept)")
         _progress(result=f"Stopped by you. Checked {examined}, added {added} — those are kept. "
@@ -225,8 +254,11 @@ def schedule_today() -> int:
         need = int(st.get("listings_per_day")) - posted_today_count() - scheduled
         if need <= 0:
             return 0
-        items = (s.query(QueueItem).filter(QueueItem.queue_date == today, QueueItem.status == "queued")
-                 .order_by((QueueItem.source == "manual").desc(), QueueItem.expected_profit.desc()).limit(need).all())
+        queued = (s.query(QueueItem).filter(QueueItem.queue_date == today, QueueItem.status == "queued")
+                  .order_by((QueueItem.source == "manual").desc(), QueueItem.expected_profit.desc()).all())
+        used_today = [q.search_term for q in s.query(QueueItem).filter(
+            QueueItem.queue_date == today, QueueItem.status.in_(["scheduled", "posting", "posted"]))]
+        items = _mix_keywords(queued, need, used_today)
         if not items:
             return 0
         span = (end - begin).total_seconds()
@@ -237,6 +269,23 @@ def schedule_today() -> int:
         n = len(items)
     activity.info("queued", f"Scheduled {n} listing(s) between {begin:%H:%M} and {end:%H:%M}")
     return n
+
+
+def _mix_keywords(queued: list, need: int, used_today: list[str]) -> list:
+    """Pick `need` items, taking turns between keywords so the same kind of product isn't posted back to back.
+    Manual adds go first; keywords already posted/scheduled today wait their turn; best profit first within a keyword."""
+    manual = [q for q in queued if q.source == "manual"][:need]
+    groups: dict[str, list] = {}
+    for q in queued:
+        if q.source != "manual":
+            groups.setdefault(q.search_term, []).append(q)
+    order = sorted(groups, key=lambda k: (used_today.count(k), random.random()))
+    picked = list(manual)
+    while len(picked) < need and any(groups.values()):
+        for k in order:
+            if groups[k] and len(picked) < need:
+                picked.append(groups[k].pop(0))
+    return picked
 
 
 def due_items() -> list[int]:
