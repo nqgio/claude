@@ -50,6 +50,11 @@ export default function ListingDetail() {
             <ActionButton icon={RefreshCw} action={() => api.post(`/listings/${id}/refresh`)} onDone={() => setTimeout(reload, 4000)} success="Refresh started">
               Refresh
             </ActionButton>
+            {l.flagged && l.flag_reason.startsWith("review:") && l.current_breakdown?.passes_floor && (
+              <ActionButton kind="primary" confirm={`Set the eBay price to $${l.current_breakdown?.ebay_price?.toFixed(2)}? Check the Amazon page first.`}
+                action={async () => { const r = await api.post(`/listings/${id}/apply-price`); if (!r.ok) throw new Error(r.message); return r; }}
+                onDone={reload}>Apply suggested price</ActionButton>
+            )}
             {l.flagged && <ActionButton action={() => api.post(`/listings/${id}/unflag`)} onDone={reload} success="Flag cleared">Clear flag</ActionButton>}
             {l.status !== "ended" && (
               <ActionButton kind="danger-soft" icon={Trash2} confirm="End this listing on eBay?" action={() => api.post(`/listings/${id}/end`)} onDone={reload}>

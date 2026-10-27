@@ -6,7 +6,8 @@
     ebay_price  = round_to_99(raw_price)
 
     ebay_fees   = (ebay_price × (1 + buyer_tax_estimate/100)) × ebay_fee_percent/100 + ebay_fee_fixed_per_order
-    promo_fee   = ebay_price × promo_rate_percent/100
+    promo_fee   = ebay_price × (1 + buyer_tax_estimate/100) × promo_rate_percent/100
+                  (eBay's general-campaign ad fee is charged on the total including buyer tax, like the FVF)
     profit      = ebay_price − amazon_cost − ebay_fees − promo_fee
 
 Profit % (min_profit_percent) is ROI: profit ÷ amazon_cost × 100.
@@ -73,7 +74,7 @@ def profit_for(ebay_price: Any, cost: Any, p: PricingParams, buyer_tax_percent: 
     fee_basis = price * (1 + bt / HUNDRED)
     fvf = fee_basis * _d(p.ebay_fee_percent) / HUNDRED
     ebay_fees = fvf + _d(p.ebay_fee_fixed_per_order)
-    promo_fee = price * _d(p.promo_rate_percent) / HUNDRED
+    promo_fee = fee_basis * _d(p.promo_rate_percent) / HUNDRED
     profit = price - cost - ebay_fees - promo_fee
     roi = (profit / cost * HUNDRED) if cost > 0 else D(0)
     return {
@@ -91,6 +92,8 @@ def profit_for(ebay_price: Any, cost: Any, p: PricingParams, buyer_tax_percent: 
 
 def floor_failures(profit: Decimal, roi: Decimal, p: PricingParams) -> list[str]:
     reasons = []
+    if profit < 0:  # always on, whatever the floor settings: never list or keep an item that loses money
+        reasons.append(f"would lose money (profit ${money(profit):.2f})")
     if p.min_profit_dollars is not None and profit < _d(p.min_profit_dollars):
         reasons.append(f"profit ${money(profit):.2f} is below the ${float(p.min_profit_dollars):.2f} minimum")
     if p.min_profit_percent is not None and roi < _d(p.min_profit_percent):

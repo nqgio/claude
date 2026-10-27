@@ -117,6 +117,10 @@ SPECS: list[Spec] = [
     Spec("refresh_every_hours", 6, "int", "refresh", "Refresh every N hours", min=1, max=168),
     Spec("oos_action", "zero_quantity", "choice", "refresh", "When Amazon is out of stock",
          choices=[("zero_quantity", "Set eBay quantity to 0"), ("end", "End the listing")]),
+    Spec("refresh_max_drop_percent", 40.0, "float", "refresh", "Hold price drops bigger than (%)",
+         "If a refresh would cut an eBay price by more than this, the price is left alone and the listing is flagged "
+         "for you to confirm — protects against a misread Amazon price (coupon, other seller, wrong variant).",
+         min=5, max=90),
     Spec("below_floor_action", "zero_quantity", "choice", "refresh", "When profit drops below the floor",
          choices=[("zero_quantity", "Set eBay quantity to 0"), ("end", "End the listing"), ("flag", "Just flag it")]),
 

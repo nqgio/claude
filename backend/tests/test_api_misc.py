@@ -33,7 +33,7 @@ def test_settings_roundtrip_and_validation(api):
 
 def test_pricing_preview(api):
     b = api.post("/api/pricing/preview", json={"amazon_price": 13.99}).json()
-    assert b["ebay_price"] == 22.99 and b["profit"] == 3.30
+    assert b["ebay_price"] == 22.99 and b["profit"] == 3.23
 
 
 def test_blocklist_api(api):

@@ -45,7 +45,7 @@ def estimate_fees(order: Order, listing: Listing | None) -> None:
     fee_basis = _d(order.revenue_total)
     order.ebay_fees_est = float(fee_basis * _d(p.ebay_fee_percent) / 100 + _d(p.ebay_fee_fixed_per_order))
     promoted = listing is not None and (listing.ad_id or listing.dry_run) and p.promo_rate_percent > 0
-    sale = _d(order.item_subtotal + order.shipping_charged)
+    sale = _d(order.revenue_total)  # ad fee is charged on the total incl. buyer tax, like the FVF
     order.promo_fee_est = float(sale * _d(p.promo_rate_percent) / 100) if promoted else 0.0
 
 

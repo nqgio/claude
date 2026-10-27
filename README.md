@@ -166,6 +166,12 @@ At the time you set (or on your chosen interval), the app re-opens every active 
 - **Price changed:** it recalculates with your pricing formula. If the rounded eBay price is different, it updates eBay.
 - **Out of stock:** sets quantity to 0 (or ends the listing, your choice). When stock returns, it restores quantity and reprices.
 - **Profit below your floor:** applies your chosen action.
+
+**No item is ever kept for sale at a loss:**
+- Anything that would lose money is never queued, posted or restored, even with both minimum-profit boxes blank.
+- If Amazon's price rises and the eBay price can't be raised right away (review mode is on, or eBay rejects the update), the listing's quantity is set to 0 until the price is fixed. A sale at the old price would lose money.
+- **Big price drops are held.** If a refresh would cut an eBay price by more than *Hold price drops bigger than* (default 40%), the price is left alone and the listing is flagged. A huge drop is usually a misread page: a coupon price, another seller's price or the wrong variant. Check Amazon, then press **Apply suggested price** on the listing. It is re-checked for profit before it's applied.
+- Automatic ordering re-checks the real Amazon checkout total and won't buy if the order would lose money.
 - Every check is saved to the listing's **price history chart**, and every change goes in the activity log. **Refresh now** buttons are on the Listings page and on each listing.
 
 ### How money is calculated
@@ -175,8 +181,10 @@ Pricing (exactly as specified):
 amazon_cost = amazon_price × (1 + sales_tax%)
 raw_price   = amazon_cost × margin × (1 + ebay_fee%) × (1 + promo%) + fixed_fee
 ebay_price  = .99 rounding of raw_price
-profit      = ebay_price − amazon_cost − (ebay_price × (1 + buyer_tax%) × ebay_fee% + fixed_fee) − ebay_price × promo%
+profit      = ebay_price − amazon_cost − (ebay_price × (1 + buyer_tax%) × ebay_fee% + fixed_fee)
+                           − ebay_price × (1 + buyer_tax%) × promo%
 ```
+- Both eBay's final value fee and the Promoted Listings ad fee are charged on the total **including** the buyer's sales tax, so the profit math includes it too.
 - **Minimum profit %** is measured against Amazon cost incl. tax (ROI).
 - **Dashboard net profit** = revenue (incl. buyer tax) − buyer tax (eBay pays it to the state) − Amazon spend (minus Amazon refunds you enter) − eBay fees − promo fees − refunds to buyers.
 - eBay fees come from eBay's **Finances API** once eBay reports them. Until then, the formula's estimate is used and marked **est.** The same goes for Amazon cost before you enter what you paid.

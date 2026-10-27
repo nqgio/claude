@@ -450,7 +450,7 @@ export function Breakdown({ b }) {
     ],
     [
       line(`eBay fees · ${b.ebay_fee_percent}% of price + ${b.buyer_tax_estimate}% buyer tax, + fixed`, `−${money(b.ebay_fees)}`),
-      line(`Promoted Listings · ${b.promo_rate_percent}%`, `−${money(b.promo_fee)}`),
+      line(`Promoted Listings · ${b.promo_rate_percent}% of price + buyer tax`, `−${money(b.promo_fee)}`),
       line("Amazon cost", `−${money(b.amazon_cost)}`),
     ],
   ];

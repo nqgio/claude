@@ -37,12 +37,12 @@ def test_formula_matches_spec_step_by_step():
     assert b["raw_price"] == pytest.approx(float(raw), abs=1e-4)
     assert b["ebay_price"] == 22.99  # raw 21.6262 → next dollar .99
     fees = Decimal("22.99") * Decimal("1.06") * Decimal("0.136") + Decimal("0.40")
-    promo = Decimal("22.99") * Decimal("0.05")
+    promo = Decimal("22.99") * Decimal("1.06") * Decimal("0.05")  # ad fee also on the tax-inclusive total
     profit = Decimal("22.99") - cost - fees - promo
     assert b["ebay_fees"] == float(fees.quantize(Decimal("0.01")))
     assert b["promo_fee"] == float(promo.quantize(Decimal("0.01")))
-    assert b["profit"] == float(profit.quantize(Decimal("0.01")))  # 3.30
-    assert b["profit"] == 3.30
+    assert b["profit"] == float(profit.quantize(Decimal("0.01")))  # 3.23
+    assert b["profit"] == 3.23
     assert b["profit_percent"] == pytest.approx(float(profit / cost * 100), abs=0.05)  # ROI on cost
 
 
@@ -64,11 +64,11 @@ def test_profit_floor_dollars():
 
 
 def test_profit_floor_percent_is_roi_on_amazon_cost():
-    b = calculate(13.99, P())  # ROI ≈ 22.2%
-    assert calculate(13.99, P(min_profit_percent=22))["passes_floor"]
+    b = calculate(13.99, P())  # ROI ≈ 21.8%
+    assert calculate(13.99, P(min_profit_percent=21.5))["passes_floor"]
     bad = calculate(13.99, P(min_profit_percent=25))
     assert not bad["passes_floor"] and "% of cost" in bad["floor_reasons"][0]
-    assert 22 < b["profit_percent"] < 23
+    assert 21.5 < b["profit_percent"] < 22
 
 
 def test_profit_floor_both_and_neither():
@@ -83,7 +83,7 @@ def test_zero_floor_is_a_real_floor():
 
     assert floor_failures(Decimal("-0.01"), Decimal("-1"), P(min_profit_dollars=0))
     assert not floor_failures(Decimal("0"), Decimal("0"), P(min_profit_dollars=0))
-    assert not floor_failures(Decimal("-5"), Decimal("-50"), P())
+    assert floor_failures(Decimal("-5"), Decimal("-50"), P()) == ["would lose money (profit $-5.00)"]  # even with floors off
 
 
 def test_invalid_price():

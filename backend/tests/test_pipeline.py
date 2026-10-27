@@ -117,7 +117,7 @@ def test_dry_run_pipeline(sample_source, calls):
     assert "not in stock" in skips and "not Prime eligible" in skips
     assert "B0SAMPLE06" in skips and "below the $3.00 minimum" in skips  # profit floor
     assert sum(1 for q in items.values() if q.status == "scheduled") == 3
-    assert items["B0SAMPLE01"].ebay_price == 22.99 and items["B0SAMPLE01"].expected_profit == 3.30
+    assert items["B0SAMPLE01"].ebay_price == 22.99 and items["B0SAMPLE01"].expected_profit == 3.23
 
     results = _post_all_scheduled()
     assert all(r["ok"] for r in results)
@@ -147,6 +147,7 @@ def test_dry_run_pipeline(sample_source, calls):
     refresh.run([by_asin[b]], force_fetch=True)
     with session_scope() as s:
         assert s.get(Listing, by_asin[b]).status == "active"
+    st.update({"refresh_max_drop_percent": 90})  # this big drop is real, don't hold it
     sample.OVERRIDES[a] = {"price": 7.00}  # cheap → profit under $3
     refresh.run([by_asin[a]], force_fetch=True)
     with session_scope() as s:
@@ -300,8 +301,8 @@ def test_refresh_review_mode_does_not_touch_listing(sample_source, calls):
     _post_all_scheduled()
     with session_scope() as s:
         l = s.query(Listing).one()
-        lid, asin, price = l.id, l.asin, l.price
-    sample.OVERRIDES[asin] = {"price": 30.00}
+        lid, asin, price, was = l.id, l.asin, l.price, l.amazon_price_at_listing
+    sample.OVERRIDES[asin] = {"price": was + 1}  # still profitable at the current eBay price
     refresh.run(force_fetch=True)
     with session_scope() as s:
         l = s.get(Listing, lid)
@@ -439,3 +440,80 @@ def test_upgrade_marks_old_unlinked_orders_unmanaged():
     init_db()
     with session_scope() as s:
         assert s.query(Order).filter_by(ebay_order_id="OLD-1").one().managed is False
+
+
+def _one_listing(**settings):
+    _window_all_day()
+    st.update({"listings_per_day": 1, "queue_backup_factor": 1, **settings})
+    queue.build_queue("test")
+    _post_all_scheduled()
+    with session_scope() as s:
+        l = s.query(Listing).one()
+        return l.id, l.asin, l.price
+
+
+def test_losing_price_is_never_listed_even_with_floors_off():
+    from decimal import Decimal
+
+    from app.pricing import PricingParams, floor_failures
+
+    off = PricingParams(min_profit_dollars=None, min_profit_percent=None)
+    assert "would lose money" in floor_failures(Decimal("-0.50"), Decimal("-3"), off)[0]
+    assert not floor_failures(Decimal("0.01"), Decimal("0.1"), off)
+
+
+def test_review_mode_stops_sales_that_would_lose_money(sample_source, calls, monkeypatch):
+    from app.services import listing_ops
+
+    lid, asin, price = _one_listing(refresh_auto_apply=False)
+    qty = []
+    monkeypatch.setattr(listing_ops, "set_quantity", lambda i, q, r, status=None: qty.append((i, q)) or True)
+    sample.OVERRIDES[asin] = {"price": price}  # Amazon now costs about what eBay sells it for
+    refresh.run(force_fetch=True)
+    assert qty == [(lid, 0)]
+    with session_scope() as s:
+        l = s.get(Listing, lid)
+        assert l.price == price and "would lose" in l.flag_reason and "suggested eBay price" in l.flag_reason
+    # a small rise that stays profitable is only flagged
+    qty.clear()
+    with session_scope() as s:
+        s.get(Listing, lid).flagged = False
+    sample.OVERRIDES[asin] = {"price": round(price / 1.8, 2)}
+    refresh.run(force_fetch=True)
+    assert qty == []
+
+
+def test_failed_price_update_stops_a_losing_listing(sample_source, calls, monkeypatch):
+    from app.services import listing_ops
+
+    lid, asin, price = _one_listing()
+    qty = []
+    monkeypatch.setattr(listing_ops, "set_quantity", lambda i, q, r, status=None: qty.append((i, q)) or True)
+
+    def boom(*a, **k):
+        raise RuntimeError("eBay said no")
+
+    monkeypatch.setattr(listing_ops, "set_price", boom)
+    sample.OVERRIDES[asin] = {"price": price}
+    stats = refresh.run(force_fetch=True)
+    assert stats["errors"] == 1 and qty == [(lid, 0)]
+
+
+def test_big_price_drop_is_held_for_review(sample_source, calls, monkeypatch):
+    from app.services import listing_ops
+
+    lid, asin, price = _one_listing()
+    changed = []
+    monkeypatch.setattr(listing_ops, "set_price", lambda i, p, r: changed.append(p) or True)
+    sample.OVERRIDES[asin] = {"price": 2.00}  # e.g. a misread coupon price
+    refresh.run(force_fetch=True)
+    with session_scope() as s:
+        l = s.get(Listing, lid)
+        assert changed == [] and l.price == price and "big price drop held" in l.flag_reason
+        suggested = l.current_breakdown["ebay_price"]
+    st.update({"min_profit_dollars": None})  # $2 items can't make $3, so allow the confirm in this test
+    r = refresh.apply_suggested_price(lid)
+    assert r["ok"], r
+    assert changed == [suggested]
+    with session_scope() as s:
+        assert not s.get(Listing, lid).flagged

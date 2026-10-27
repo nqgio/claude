@@ -354,6 +354,12 @@ def refresh_listing(lid: int):
     return {"ok": True, "message": "refresh started"}
 
 
+@router.post("/listings/{lid}/apply-price")
+def apply_listing_price(lid: int):
+    get_listing(lid)  # 404 if missing
+    return refresh.apply_suggested_price(lid)
+
+
 @router.post("/listings/{lid}/unflag")
 def unflag_listing(lid: int):
     with session_scope() as s:
