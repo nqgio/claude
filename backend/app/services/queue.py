@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 from datetime import date, datetime, time as dtime, timedelta, timezone
 
 from .. import activity
@@ -114,11 +115,11 @@ def build_queue(trigger: str = "schedule") -> dict:
 
 def _build_queue(trigger: str) -> dict:
     today = local_now().date()
-    st.set_internal("last_queue_build_date", today.isoformat())
     terms = _search_terms()
     if not terms:
         activity.warning("queued", "No search keywords or categories set (Settings → Product finder) — queue not built")
         _progress(result="No search keywords set (Settings → Product finder).")
+        _mark_built(today)
         return {"added": 0}
     per_day = int(st.get("listings_per_day"))
     target = math.ceil(per_day * float(st.get("queue_backup_factor")))
@@ -221,16 +222,25 @@ def _build_queue(trigger: str) -> dict:
         _progress(result=f"Stopped by you. Checked {examined}, added {added} — those are kept. "
                          "Change settings if you like, then press Build queue now to continue.")
         schedule_today()
+        _mark_built(today)
         return {"added": added, "examined": examined, "stopped": "by user"}
     except (SourceBlocked, SourcePaused) as exc:
         activity.warning("queued", f"Queue build stopped early: {exc}")
-        _progress(result=f"Stopped early: Amazon is paused ({exc}). Checked {examined}, added {added}.")
-        schedule_today()
+        _progress(result=f"Stopped early: Amazon is paused ({exc}). Checked {examined}, added {added}. "
+                         "It will carry on automatically when the pause ends.")
+        schedule_today()  # today isn't marked built, so posting_tick resumes the build after the cooldown
         return {"added": added, "examined": examined, "stopped": str(exc)}
     activity.info("queued", f"Queue build done: examined {examined}, added {added}")
     _progress(step="Scheduling posting times…")
     schedule_today()
+    _mark_built(today)
     return {"added": added, "examined": examined}
+
+
+def _mark_built(day: date) -> None:
+    """Today's build finished (or you stopped it). Only then does the catch-up in posting_tick stand down,
+    so a build cut short by a CAPTCHA pause, a crash or the PC shutting down is retried the same day."""
+    st.set_internal("last_queue_build_date", day.isoformat())
 
 
 def posted_today_count() -> int:
@@ -288,20 +298,37 @@ def _mix_keywords(queued: list, need: int, used_today: list[str]) -> list:
     return picked
 
 
+def _amazon_paused() -> bool:
+    if st.get("product_source") != "amazon_playwright":
+        return False
+    from ..providers.amazon_playwright import paused_until
+
+    until = paused_until()
+    return until is not None and datetime.now(timezone.utc) < until
+
+
 def due_items() -> list[int]:
     with session_scope() as s:
         return [q.id for q in s.query(QueueItem).filter(QueueItem.status == "scheduled", QueueItem.scheduled_at <= utcnow())
                 .order_by(QueueItem.scheduled_at).limit(1).all()]
 
 
+CATCHUP_RETRY_SECONDS = 15 * 60
+_last_catchup = 0.0  # monotonic time of the last catch-up attempt (resets when the app restarts)
+
+
 def posting_tick() -> None:
+    global _last_catchup
     now = local_now()
     built = st.get("last_queue_build_date")
-    if built != now.date().isoformat() and now.time() >= _hm(st.get("discovery_time")):
+    if built != now.date().isoformat() and now.time() >= _hm(st.get("discovery_time")) \
+            and not PROGRESS.get("running") and time.monotonic() - _last_catchup >= CATCHUP_RETRY_SECONDS \
+            and not _amazon_paused():
+        # Today's queue hasn't been built yet: the PC was off at build time, or the build was cut short.
         from .scheduler import run_now
 
+        _last_catchup = time.monotonic()
         run_now("discovery")
-        return
     for item_id in due_items():
         post_item(item_id)
     schedule_today()  # refill if something failed or was removed

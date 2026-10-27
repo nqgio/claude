@@ -542,3 +542,60 @@ def test_queue_takes_turns_between_keywords(sample_source, monkeypatch):
         scheduled = [q.search_term for q in sorted(items, key=lambda q: q.scheduled_at)]
     assert scheduled[0] != scheduled[1] and scheduled[1] != scheduled[2]  # posts alternate keywords
     assert sorted(searches) == [("garlic", 1), ("lamps", 1)]  # each keyword searched once, results reused
+
+
+def _tick_at(monkeypatch, hhmm: str):
+    """Run one posting_tick as if the local time were hh:mm today; returns the jobs it started."""
+    from datetime import datetime
+
+    from app.services import scheduler
+
+    started = []
+    h, m = map(int, hhmm.split(":"))
+    fake_now = datetime.now().astimezone().replace(hour=h, minute=m)
+    monkeypatch.setattr(queue, "local_now", lambda: fake_now)
+    monkeypatch.setattr(scheduler, "run_now", lambda name: started.append(name) or True)
+    queue.posting_tick()
+    return started
+
+
+def test_morning_queue_catch_up(sample_source, monkeypatch):
+    from app.providers import amazon_playwright as ap
+    from app.providers.base import SourcePaused
+
+    st.update({"discovery_time": "07:30", "posting_window_start": "08:00", "posting_window_end": "22:00"})
+    queue._last_catchup = 0.0
+    assert _tick_at(monkeypatch, "07:00") == []                 # before build time: nothing
+    assert _tick_at(monkeypatch, "09:15") == ["discovery"]      # PC was off at 07:30 → builds on next tick
+    assert _tick_at(monkeypatch, "09:16") == []                 # no retry storm while it runs / just ran
+    queue._last_catchup = 0.0
+
+    # A CAPTCHA cuts the build short: today is NOT marked built, and it carries on after the cooldown.
+    def blocked(*a, **k):
+        ap.pause_for_block("test robot check")
+        raise SourcePaused("paused")
+
+    st.update({"product_source": "amazon_playwright"})
+    monkeypatch.setattr(queue, "get_provider", lambda: type("P", (), {"search": staticmethod(blocked)})())
+    res = queue.build_queue("schedule")
+    assert res["stopped"] and st.get("last_queue_build_date") is None
+    assert "carry on automatically" in queue.PROGRESS["result"]
+    assert _tick_at(monkeypatch, "09:30") == []                 # still paused: waits, no hammering Amazon
+    ap.resume("test")
+    assert _tick_at(monkeypatch, "12:45") == ["discovery"]      # cooldown over → build resumes
+    queue._last_catchup = 0.0
+
+    # A crash mid-build (or the PC shutting down) also leaves today unbuilt.
+    st.update({"product_source": "sample"})
+    monkeypatch.setattr(queue, "get_provider", lambda: type("P", (), {"search": staticmethod(
+        lambda *a: (_ for _ in ()).throw(RuntimeError("network down")))})())
+    with pytest.raises(RuntimeError):
+        queue.build_queue("schedule")
+    assert st.get("last_queue_build_date") is None
+    monkeypatch.undo()
+
+    # A normal build marks the day done, so no more catch-ups today.
+    queue.build_queue("schedule")
+    assert st.get("last_queue_build_date") == queue.local_now().date().isoformat()
+    queue._last_catchup = 0.0
+    assert _tick_at(monkeypatch, "15:00") == []
