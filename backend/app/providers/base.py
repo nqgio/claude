@@ -2,6 +2,7 @@
 `ProductProvider` and registering it in `providers/__init__.py`."""
 from __future__ import annotations
 
+import threading
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 
@@ -16,6 +17,14 @@ class SourceBlocked(ProviderError):
 
 class SourcePaused(ProviderError):
     """The source is in its cooldown window after a block."""
+
+
+class Stopped(SourcePaused):
+    """The person pressed "Stop search"; the current Amazon task ends at the next safe point."""
+
+
+# Set by "Stop search"; checked before every page load and during the waits between pages.
+STOP_EVENT = threading.Event()
 
 
 @dataclass

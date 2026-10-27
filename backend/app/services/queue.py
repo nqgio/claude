@@ -13,7 +13,7 @@ from ..ebay import api as ebay
 from ..ebay.client import EbayError, keys as ebay_keys
 from ..models import Listing, QueueItem, utcnow
 from ..providers import get_provider
-from ..providers.base import ProviderError, SourceBlocked, SourcePaused
+from ..providers.base import STOP_EVENT, ProviderError, SourceBlocked, SourcePaused, Stopped
 from . import products
 from .content import build_listing_content
 from .evaluate import evaluate, search_result_reasons
@@ -84,7 +84,17 @@ def _progress(**kw) -> None:
     PROGRESS.update(kw)
 
 
+def stop_build() -> bool:
+    """Ask a running queue build to stop at the next safe point. Products already found are kept."""
+    if not PROGRESS.get("running"):
+        return False
+    STOP_EVENT.set()
+    _progress(step="Stopping…")
+    return True
+
+
 def build_queue(trigger: str = "schedule") -> dict:
+    STOP_EVENT.clear()
     PROGRESS.clear()
     _progress(running=True, started_at=utcnow().isoformat() + "Z", step="Starting…", examined=0, added=0, target=0,
               have=0, finished_at=None, result="")
@@ -97,6 +107,7 @@ def build_queue(trigger: str = "schedule") -> dict:
         _progress(result=f"Stopped by an error: {exc}")
         raise
     finally:
+        STOP_EVENT.clear()
         _progress(running=False, finished_at=utcnow().isoformat() + "Z", step="")
 
 
@@ -130,6 +141,8 @@ def _build_queue(trigger: str) -> dict:
             for page in range(1, int(st.get("search_pages_per_term")) + 1):
                 if have + added >= target:
                     break
+                if STOP_EVENT.is_set():
+                    raise Stopped("stopped by you")
                 _progress(step=f"Searching Amazon for “{term or cat}” (page {page})")
                 try:
                     results = provider.search(term, cat, page)
@@ -145,6 +158,8 @@ def _build_queue(trigger: str) -> dict:
                         break
                     if r.asin in seen:
                         continue
+                    if STOP_EVENT.is_set():
+                        raise Stopped("stopped by you")
                     seen.add(r.asin)
                     examined += 1
                     _progress(examined=examined, step=f"Checking {r.asin}: {r.title[:70]}")
@@ -172,6 +187,12 @@ def _build_queue(trigger: str) -> dict:
                     b = ev["breakdown"]
                     activity.info("found", f"Queued {p.asin} '{p.title[:60]}' — Amazon ${b['amazon_price']:.2f} → "
                                            f"eBay ${b['ebay_price']:.2f}, profit ${b['profit']:.2f}", asin=p.asin)
+    except Stopped:
+        activity.info("queued", f"Queue build stopped by you: checked {examined}, added {added} (kept)")
+        _progress(result=f"Stopped by you. Checked {examined}, added {added} — those are kept. "
+                         "Change settings if you like, then press Build queue now to continue.")
+        schedule_today()
+        return {"added": added, "examined": examined, "stopped": "by user"}
     except (SourceBlocked, SourcePaused) as exc:
         activity.warning("queued", f"Queue build stopped early: {exc}")
         _progress(result=f"Stopped early: Amazon is paused ({exc}). Checked {examined}, added {added}.")

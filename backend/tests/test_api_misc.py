@@ -160,3 +160,42 @@ def test_queue_build_progress(sample_source):
     st.update({"search_keywords": []})
     queue.build_queue("test")
     assert "No search keywords" in queue.PROGRESS["result"] and not queue.PROGRESS["running"]
+
+
+def test_stop_search_ends_quickly_and_keeps_found_items(sample_source, monkeypatch):
+    import threading
+    import time
+
+    from app.db import session_scope
+    from app.models import QueueItem
+    from app.providers import amazon_playwright as ap
+    from app.providers import get_provider
+    from app.services import queue
+
+    st.update({"posting_window_start": "00:00", "posting_window_end": "23:59", "listings_per_day": 5})
+    prov = get_provider()
+    real_get = prov.get_product
+
+    def slow_get(asin):  # behaves like the paced Amazon source: waits between pages
+        ap._sleep(5)
+        return real_get(asin)
+
+    monkeypatch.setattr(prov, "get_product", slow_get)
+    t = threading.Thread(target=queue.build_queue, args=("test",))
+    started = time.monotonic()
+    t.start()
+    time.sleep(0.3)
+    assert queue.PROGRESS["running"]
+    assert queue.stop_build()
+    t.join(timeout=10)
+    assert not t.is_alive() and time.monotonic() - started < 3  # didn't wait out the 5 s pause
+    assert queue.PROGRESS["result"].startswith("Stopped by you") and not queue.PROGRESS["running"]
+    assert not queue.stop_build()  # nothing running any more
+    from app.providers.base import STOP_EVENT
+
+    assert not STOP_EVENT.is_set()  # cleared, so the next build runs normally
+    monkeypatch.setattr(prov, "get_product", real_get)
+    queue.build_queue("test")
+    with session_scope() as s:
+        assert s.query(QueueItem).count() >= 1
+    assert queue.PROGRESS["result"].startswith("Done")

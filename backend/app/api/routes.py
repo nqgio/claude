@@ -375,7 +375,10 @@ def get_queue(day: str | None = None):
     with session_scope() as s:
         items = s.query(QueueItem).filter(QueueItem.queue_date == d).order_by(
             QueueItem.scheduled_at.is_(None), QueueItem.scheduled_at, QueueItem.id).all()
-        return {"date": d.isoformat(), "items": [row(i) for i in items],
+        days = [r[0].isoformat() for r in s.query(QueueItem.queue_date).distinct()
+                .order_by(QueueItem.queue_date.desc()).limit(60)]
+        return {"date": d.isoformat(), "today": queue.local_now().date().isoformat(), "days": days,
+                "items": [row(i) for i in items],
                 "window": [st.get("posting_window_start"), st.get("posting_window_end")],
                 "listings_per_day": st.get("listings_per_day"), "posted_today": queue.posted_today_count(),
                 "build": dict(queue.PROGRESS)}
@@ -418,6 +421,13 @@ def remove_queue_item(qid: int):
 def post_now(qid: int):
     scheduler.run_task(f"Post queue item #{qid}", queue.post_item, qid)
     return {"ok": True}
+
+
+@router.post("/queue/stop")
+def stop_queue_build():
+    if queue.stop_build():
+        return {"message": "Stopping the search — it ends within a few seconds. Products already found are kept."}
+    return {"message": "No search is running."}
 
 
 @router.post("/queue/build")

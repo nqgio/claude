@@ -26,8 +26,8 @@ from urllib.parse import quote_plus
 from .. import activity, config
 from .. import settings_store as st
 from . import amazon_parser as parser
-from .base import (ProductData, ProductProvider, ProviderError, PurchaseResult, SearchResult, SourceBlocked,
-                   SourcePaused, TrackingInfo)
+from .base import (STOP_EVENT, ProductData, ProductProvider, ProviderError, PurchaseResult, SearchResult, SourceBlocked,
+                   SourcePaused, Stopped, TrackingInfo)
 
 BASE = "https://www.amazon.com"
 
@@ -82,6 +82,12 @@ def has_auth_cookie(ctx) -> bool:
         return False
 
 
+def _sleep(seconds: float) -> None:
+    """Sleep that ends early (raising Stopped) when the person presses Stop search."""
+    if seconds > 0 and STOP_EVENT.wait(timeout=seconds):
+        raise Stopped("stopped by you")
+
+
 class _Pacer:
     def __init__(self):
         self.recent: deque[float] = deque()
@@ -95,12 +101,12 @@ class _Pacer:
         if len(self.recent) >= budget:
             sleep_for = 3600 - (now - self.recent[0]) + random.uniform(1, 10)
             activity.info("amazon", f"Hourly page budget ({budget}) reached — waiting {int(sleep_for // 60)} min")
-            time.sleep(max(0.0, sleep_for))
+            _sleep(max(0.0, sleep_for))
         lo, hi = float(st.get("amazon_min_delay_sec")), float(st.get("amazon_max_delay_sec"))
         gap = random.uniform(lo, max(lo, hi))
         elapsed = time.monotonic() - self.last
         if elapsed < gap:
-            time.sleep(gap - elapsed)
+            _sleep(gap - elapsed)
         self.last = time.monotonic()
         self.recent.append(self.last)
 
@@ -162,6 +168,8 @@ class AmazonPlaywrightProvider(ProductProvider):
         return ctx.pages[0] if ctx.pages else ctx.new_page()
 
     def _goto(self, url: str) -> str:
+        if STOP_EVENT.is_set():
+            raise Stopped("stopped by you")
         check_not_paused()
         self._pacer.wait()
         page = self._page()

@@ -1,5 +1,5 @@
-import { CheckCircle2, Clock, Eye, ListOrdered, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle2, CircleStop, ChevronLeft, ChevronRight, Clock, ExternalLink, Eye, ListOrdered, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../api";
 import { useToast } from "../components/toast";
@@ -8,13 +8,23 @@ import {
 } from "../components/ui";
 
 export default function Queue() {
-  const [data, reload] = useLoad(() => api.get("/queue"), [], 4000);
+  const [params, setParams] = useSearchParams();
+  const day = params.get("day"); // null = today
+  const setDay = (d) => setParams(d ? { day: d } : {});
+  const [data, reload] = useLoad(() => api.get(`/queue${day ? `?day=${day}` : ""}`), [day], 4000);
+  const isToday = !day || (data && data.date === data.today);
+  const days = data?.days || [];
+  const idx = data ? days.indexOf(data.date) : -1;
+  const older = data && (idx >= 0 ? days[idx + 1] : days.find((d) => d < data.date));
+  const newer = data && !isToday && (idx > 0 ? days[idx - 1] : null);
+  const nice = (d) => new Date(`${d}T00:00:00`).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
   const build = data?.build || {};
   const [asin, setAsin] = useState("");
   const [force, setForce] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
   const toast = useToast();
+  const nav = useNavigate();
   const posted = data?.posted_today || 0;
   const target = data?.listings_per_day || 0;
   const cols = [
@@ -54,6 +64,7 @@ export default function Queue() {
       render: (r) => (
         <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" kind="ghost" icon={Eye} onClick={() => setPreview(r)}>Preview</Button>
+          {r.listing_id && <Button size="sm" kind="ghost" icon={ExternalLink} onClick={() => nav(`/listings/${r.listing_id}`)}>Listing</Button>}
           {["queued", "scheduled"].includes(r.status) && (
             <>
               <ActionButton size="sm" icon={Send} action={() => api.post(`/queue/${r.id}/post-now`)} onDone={() => setTimeout(reload, 3000)} success="Posting now">
@@ -70,15 +81,29 @@ export default function Queue() {
     <>
       <PageHeader
         title="Queue"
-        description={data ? `Today's products, posted at random times between ${data.window[0]} and ${data.window[1]}.` : "Today's products."}
+        description={data ? (isToday ? `Today's products, posted at random times between ${data.window[0]} and ${data.window[1]}.`
+          : `Queue for ${nice(data.date)}. Posted items are on the Listings page; anything not posted that day expired.`) : "Today's products."}
         actions={
-          <ActionButton kind="primary" icon={build.running ? Loader2 : Sparkles} disabled={build.running}
-            action={() => api.post("/queue/build")} onDone={() => setTimeout(reload, 1000)}>
-            {build.running ? "Building…" : "Build queue now"}
-          </ActionButton>
+          <>
+          <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-0.5 shadow-xs">
+            <Button size="sm" kind="ghost" icon={ChevronLeft} disabled={!older} onClick={() => setDay(older)} title="Earlier day" />
+            <span className="min-w-[96px] px-1 text-center text-[12.5px] font-medium">{data ? (isToday ? "Today" : nice(data.date)) : "…"}</span>
+            <Button size="sm" kind="ghost" icon={ChevronRight} disabled={isToday} onClick={() => setDay(newer && newer !== data?.today ? newer : null)} title="Later day" />
+          </div>
+          {build.running ? (
+            <ActionButton kind="danger-soft" icon={CircleStop} action={() => api.post("/queue/stop")} onDone={() => setTimeout(reload, 1000)}>
+              Stop search
+            </ActionButton>
+          ) : (
+            <ActionButton kind="primary" icon={Sparkles} action={() => api.post("/queue/build")} onDone={() => setTimeout(reload, 1000)}>
+              Build queue now
+            </ActionButton>
+          )}
+          </>
         }
       />
-      <BuildProgress build={build} />
+      {isToday && <BuildProgress build={build} onStop={async () => { await api.post("/queue/stop"); setTimeout(reload, 1000); }} />}
+      {isToday && (
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <div className="card p-4 md:col-span-1">
           <div className="text-[12px] font-medium text-ink-2">Posted today</div>
@@ -114,9 +139,11 @@ export default function Queue() {
           </div>
         </form>
       </div>
+      )}
       <Card padded={false}>
         <Table columns={cols} rows={data?.items} loading onRowClick={setPreview}
-          empty={<EmptyState icon={ListOrdered} title="The queue is empty" text="It's built every day at your queue build time, or press “Build queue now”." />} />
+          empty={<EmptyState icon={ListOrdered} title={isToday ? "The queue is empty" : "Nothing was queued that day"}
+            text={isToday ? "It's built every day at your queue build time, or press “Build queue now”. While it builds, progress shows above." : "Use the arrows to look at another day."} />} />
       </Card>
       <Modal open={!!preview} onClose={() => setPreview(null)} title="Listing preview" subtitle={preview && `${preview.asin} · written by the ${preview.preview?.writer || "built-in"} writer`} wide>
         {preview && <Preview item={preview} />}
@@ -167,7 +194,7 @@ function Preview({ item }) {
 }
 
 
-function BuildProgress({ build }) {
+function BuildProgress({ build, onStop }) {
   if (!build.running && !build.result) return null;
   const pct = build.target ? Math.min(100, ((build.have + build.added) / build.target) * 100) : 0;
   if (!build.running) {
@@ -187,6 +214,9 @@ function BuildProgress({ build }) {
           <div className="text-[13px] font-semibold">Building the queue…</div>
           <div className="mt-0.5 truncate text-xs text-ink-2">{build.step || "Starting…"}</div>
         </div>
+        <Button size="sm" kind="danger-soft" icon={CircleStop} onClick={onStop} disabled={build.step === "Stopping…"}>
+          {build.step === "Stopping…" ? "Stopping…" : "Stop"}
+        </Button>
         <div className="text-right text-[12.5px] text-ink-2">
           <div><strong className="tnum text-ink">{build.added}</strong>{build.target ? ` of ${build.target - build.have}` : ""} added</div>
           <div className="tnum text-xs text-ink-3">{build.examined} product{build.examined === 1 ? "" : "s"} checked</div>
@@ -197,6 +227,7 @@ function BuildProgress({ build }) {
       </div>
       <p className="mt-2 text-xs text-ink-3">
         Amazon pages are read slowly on purpose, so this can take an hour or more. You can leave this page; it keeps going.
+        Want to change settings first? Press Stop (products found so far are kept), change Settings, then Build queue now again.
         Each product found or skipped (and why) is listed in the <Link to="/activity" className="text-accent-ink hover:underline">Activity log</Link>.
       </p>
     </div>
