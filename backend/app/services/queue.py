@@ -389,6 +389,10 @@ def post_item(item_id: int) -> dict:
         item.status = "posting"
         item.scheduled_at = min(item.scheduled_at or utcnow(), utcnow())  # "Post now" items get a start time too
         asin, force = item.asin, bool((item.preview or {}).get("force"))
+    if asin in active_asins():  # last check: never list the same product twice
+        _finish(item_id, "skipped", "already listed on eBay")
+        activity.info("skipped", f"Not listing {asin}: it's already listed", asin=asin)
+        return {"ok": False, "message": "already listed on eBay"}
     try:
         p, _ = products.fetch(asin)
         ev = evaluate(p, apply_filters=not force)

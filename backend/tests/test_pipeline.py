@@ -687,3 +687,21 @@ def test_unposted_items_carry_over_to_the_next_day(sample_source, monkeypatch):
         carried = [old[i] for i in ids[1:]]
         assert all(q.queue_date == queue.local_now().date() and q.message.startswith("carried over") for q in carried)
         assert sum(1 for q in carried if q.status == "scheduled") >= 1
+
+
+def test_never_lists_the_same_product_twice(live):
+    queue.build_queue("test")
+    [res] = _post_all_scheduled()
+    assert res["ok"]
+    with session_scope() as s:
+        asin = s.query(Listing).one().asin
+        s.add(QueueItem(asin=asin, queue_date=queue.local_now().date(), status="scheduled", source="manual",
+                        scheduled_at=queue.utcnow()))  # e.g. carried over or added again by hand
+        s.flush()
+        dup = s.query(QueueItem).order_by(QueueItem.id.desc()).first().id
+    assert queue.post_item(dup) == {"ok": False, "message": "already listed on eBay"}
+    assert queue.manual_add(asin)["message"].endswith("already listed")
+    queue.build_queue("test")  # and a new build never queues it again
+    with session_scope() as s:
+        assert s.query(Listing).count() == 1
+        assert s.query(QueueItem).filter_by(asin=asin, status="queued").count() == 0
