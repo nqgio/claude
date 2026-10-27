@@ -19,7 +19,7 @@ import re
 import threading
 import time
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
 
@@ -27,7 +27,7 @@ from .. import activity, config
 from .. import settings_store as st
 from . import amazon_parser as parser
 from .base import (STOP_EVENT, ProductData, ProductProvider, ProviderError, PurchaseResult, SearchResult, SourceBlocked,
-                   SourcePaused, Stopped, TrackingInfo)
+                   SourcePaused, Stopped, TrackingInfo, notify_wait)
 
 BASE = "https://www.amazon.com"
 
@@ -100,8 +100,14 @@ class _Pacer:
         budget = int(st.get("amazon_max_pages_per_hour"))
         if len(self.recent) >= budget:
             sleep_for = 3600 - (now - self.recent[0]) + random.uniform(1, 10)
+            until = datetime.now() + timedelta(seconds=sleep_for)
             activity.info("amazon", f"Hourly page budget ({budget}) reached — waiting {int(sleep_for // 60)} min")
-            _sleep(max(0.0, sleep_for))
+            notify_wait(f"Waiting until about {until.strftime('%I:%M %p').lstrip('0')}: the {budget} Amazon pages/hour limit was reached "
+                        f"(Settings → Amazon scraper). This is normal; it continues on its own.")
+            try:
+                _sleep(max(0.0, sleep_for))
+            finally:
+                notify_wait(None)
         lo, hi = float(st.get("amazon_min_delay_sec")), float(st.get("amazon_max_delay_sec"))
         gap = random.uniform(lo, max(lo, hi))
         elapsed = time.monotonic() - self.last
@@ -121,13 +127,38 @@ class AmazonPlaywrightProvider(ProductProvider):
         self._headless = None
         self._pacer = _Pacer()
         self._lock = threading.Lock()
+        self._inflight = 0
         self._profile = None  # profile directory of the open browser
         self._want = str(config.AMAZON_BROWSE_DIR)  # profile the current operation needs
         self._solving = False
 
     # ---- thread plumbing -----------------------------------------------------
     def _run(self, fn, *args, timeout: float | None = None):
-        return self._executor.submit(fn, *args).result(timeout=timeout)
+        # One Amazon task at a time: if another job (e.g. the price refresh) has the browser, say so while waiting.
+        with self._lock:
+            busy = self._inflight > 0
+            self._inflight += 1
+        try:
+            fut = self._executor.submit(fn, *args)
+            if busy:
+                notify_wait("Waiting for another Amazon task (like the price refresh) to finish — "
+                            "only one runs at a time. It continues on its own.")
+                try:
+                    while not fut.done():  # wake up on Stop instead of blocking until the other task ends
+                        if STOP_EVENT.is_set():
+                            raise Stopped("stopped by you")
+                        try:
+                            fut.result(timeout=1)
+                        except FutureTimeout:
+                            continue
+                        except Exception:
+                            break
+                finally:
+                    notify_wait(None)
+            return fut.result(timeout=timeout)
+        finally:
+            with self._lock:
+                self._inflight -= 1
 
     def _use(self, profile: str | None) -> None:
         """Select the browser profile for the next steps: an account's login profile,

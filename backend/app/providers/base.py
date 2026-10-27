@@ -26,6 +26,23 @@ class Stopped(SourcePaused):
 # Set by "Stop search"; checked before every page load and during the waits between pages.
 STOP_EVENT = threading.Event()
 
+# Someone (the queue's progress panel) can listen for "why is nothing happening" waits:
+# notify_wait("Waiting …") when a long wait starts, notify_wait(None) when it ends.
+_wait_listener = None
+
+
+def set_wait_listener(fn) -> None:
+    global _wait_listener
+    _wait_listener = fn
+
+
+def notify_wait(message: str | None) -> None:
+    if _wait_listener:
+        try:
+            _wait_listener(message)
+        except Exception:
+            pass
+
 
 @dataclass
 class SearchResult:

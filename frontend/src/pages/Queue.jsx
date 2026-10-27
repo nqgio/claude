@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { useToast } from "../components/toast";
 import {
-  ActionButton, Badge, Breakdown, Button, Card, EmptyState, Modal, PageHeader, StatusBadge, Switch, Table, Thumb, clock, money, useLoad,
+  ActionButton, Badge, Breakdown, Button, Card, EmptyState, Modal, PageHeader, StatusBadge, Switch, Table, Thumb, clock, cx, money, useLoad,
 } from "../components/ui";
 
 export default function Queue() {
@@ -216,7 +216,9 @@ function BuildProgress({ build, onStop }) {
         <Loader2 className="h-4.5 w-4.5 shrink-0 animate-spin text-accent" />
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-semibold">Building the queue…</div>
-          <div className="mt-0.5 truncate text-xs text-ink-2">{build.step || "Starting…"}</div>
+          <div className={cx("mt-0.5 text-xs", build.waiting ? "font-medium text-amber-700 dark:text-amber-300" : "truncate text-ink-2")}>
+            {build.step || "Starting…"}
+          </div>
         </div>
         <Button size="sm" kind="danger-soft" icon={CircleStop} onClick={onStop} disabled={build.step === "Stopping…"}>
           {build.step === "Stopping…" ? "Stopping…" : "Stop"}

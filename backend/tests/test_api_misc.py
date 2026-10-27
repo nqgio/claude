@@ -199,3 +199,30 @@ def test_stop_search_ends_quickly_and_keeps_found_items(sample_source, monkeypat
     with session_scope() as s:
         assert s.query(QueueItem).count() >= 1
     assert queue.PROGRESS["result"].startswith("Done")
+
+
+def test_progress_panel_explains_amazon_waits(sample_source, monkeypatch):
+    """The hourly page limit / a busy browser show in the build progress instead of looking frozen."""
+    import threading
+    import time
+
+    from app.providers import amazon_playwright as ap
+    from app.services import queue
+
+    st.update({"amazon_max_pages_per_hour": 1, "amazon_min_delay_sec": 1, "amazon_max_delay_sec": 1,
+               "posting_window_start": "00:00", "posting_window_end": "23:59"})
+    pacer = ap._Pacer()
+    pacer.recent.append(time.monotonic())  # one page already read this hour → budget used up
+    prov = queue.get_provider()
+    real = prov.get_product
+    monkeypatch.setattr(prov, "get_product", lambda asin: (pacer.wait(), real(asin))[1])
+    t = threading.Thread(target=queue.build_queue, args=("test",))
+    t.start()
+    for _ in range(50):
+        time.sleep(0.1)
+        if queue.PROGRESS.get("waiting"):
+            break
+    assert queue.PROGRESS["waiting"] and "pages/hour limit" in queue.PROGRESS["step"]
+    queue.stop_build()
+    t.join(timeout=10)
+    assert not t.is_alive() and not queue.PROGRESS["running"]

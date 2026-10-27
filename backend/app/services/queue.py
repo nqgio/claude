@@ -14,7 +14,7 @@ from ..ebay import api as ebay
 from ..ebay.client import EbayError, keys as ebay_keys
 from ..models import Listing, QueueItem, utcnow
 from ..providers import get_provider
-from ..providers.base import STOP_EVENT, ProviderError, SourceBlocked, SourcePaused, Stopped
+from ..providers.base import STOP_EVENT, ProviderError, SourceBlocked, SourcePaused, Stopped, set_wait_listener
 from . import products
 from .content import build_listing_content
 from .evaluate import evaluate, search_result_reasons
@@ -87,6 +87,21 @@ PROGRESS: dict = {"running": False}
 
 def _progress(**kw) -> None:
     PROGRESS.update(kw)
+
+
+def _on_amazon_wait(message: str | None) -> None:
+    """Show long Amazon waits (hourly page limit, another task using the browser) in the progress panel,
+    so a waiting build doesn't look frozen."""
+    if not PROGRESS.get("running"):
+        return
+    if message:
+        PROGRESS.setdefault("step_before_wait", PROGRESS.get("step", ""))
+        PROGRESS.update(step=message, waiting=True)
+    elif PROGRESS.get("waiting"):
+        PROGRESS.update(step=PROGRESS.pop("step_before_wait", ""), waiting=False)
+
+
+set_wait_listener(_on_amazon_wait)
 
 
 def stop_build() -> bool:
