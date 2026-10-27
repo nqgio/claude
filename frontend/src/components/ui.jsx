@@ -160,13 +160,13 @@ export function ActionButton({ action, onDone, confirm: confirmText, success, ch
 
 export function Segmented({ value, onChange, options, size = "md" }) {
   return (
-    <div className="inline-flex rounded-lg border border-line bg-surface-3 p-0.5">
+    <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-line bg-surface-3 p-0.5 [scrollbar-width:none]">
       {options.map(([v, label, Icon]) => (
         <button
           key={v}
           onClick={() => onChange(v)}
           className={cx(
-            "inline-flex items-center gap-1.5 rounded-md font-medium transition",
+            "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md font-medium transition",
             size === "sm" ? "h-7 px-2 text-xs" : "h-8 px-3 text-[13px]",
             value === v ? "bg-surface text-ink shadow-xs ring-1 ring-line" : "text-ink-2 hover:text-ink"
           )}

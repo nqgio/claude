@@ -327,14 +327,24 @@ def _amazon_paused() -> bool:
     return until is not None and datetime.now(timezone.utc) < until
 
 
+STUCK_POSTING_MINUTES = 30
+
+
 def due_items() -> list[int]:
+    """The next item due to post today. Items from earlier days never post late (they expire at the next build)."""
     with session_scope() as s:
-        return [q.id for q in s.query(QueueItem).filter(QueueItem.status == "scheduled", QueueItem.scheduled_at <= utcnow())
+        # A post interrupted by the app closing stays "posting"; put it back. Re-posting is safe: the same SKU
+        # reuses its eBay offer instead of creating a second listing.
+        for q in s.query(QueueItem).filter(QueueItem.status == "posting",
+                                           QueueItem.scheduled_at <= utcnow() - timedelta(minutes=STUCK_POSTING_MINUTES)):
+            q.status, q.message = "scheduled", "retrying: the earlier attempt was interrupted"
+        return [q.id for q in s.query(QueueItem).filter(QueueItem.status == "scheduled", QueueItem.scheduled_at <= utcnow(),
+                                                        QueueItem.queue_date == local_now().date())
                 .order_by(QueueItem.scheduled_at).limit(1).all()]
 
 
 CATCHUP_RETRY_SECONDS = 15 * 60
-_last_catchup = 0.0  # monotonic time of the last catch-up attempt (resets when the app restarts)
+_last_catchup: float | None = None  # monotonic time of the last catch-up attempt (resets when the app restarts)
 
 
 def posting_tick() -> None:
@@ -342,7 +352,8 @@ def posting_tick() -> None:
     now = local_now()
     built = st.get("last_queue_build_date")
     if built != now.date().isoformat() and now.time() >= _hm(st.get("discovery_time")) \
-            and not PROGRESS.get("running") and time.monotonic() - _last_catchup >= CATCHUP_RETRY_SECONDS \
+            and not PROGRESS.get("running") \
+            and (_last_catchup is None or time.monotonic() - _last_catchup >= CATCHUP_RETRY_SECONDS) \
             and not _amazon_paused():
         # Today's queue hasn't been built yet: the PC was off at build time, or the build was cut short.
         from .scheduler import run_now
@@ -366,6 +377,7 @@ def post_item(item_id: int) -> dict:
         if item is None or item.status not in ("queued", "scheduled"):
             return {"ok": False, "message": "item is not waiting to be posted"}
         item.status = "posting"
+        item.scheduled_at = min(item.scheduled_at or utcnow(), utcnow())  # "Post now" items get a start time too
         asin, force = item.asin, bool((item.preview or {}).get("force"))
     try:
         p, _ = products.fetch(asin)

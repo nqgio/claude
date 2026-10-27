@@ -87,7 +87,7 @@
 }
 
 @layer components {
-  .card { background: var(--c-surface); box-shadow: var(--shadow-card); @apply rounded-xl border border-line; }
+  .card { background: var(--c-surface); box-shadow: var(--shadow-card); min-width: 0; @apply rounded-xl border border-line; }
   .tnum { font-variant-numeric: tabular-nums; }
 }
 

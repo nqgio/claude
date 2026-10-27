@@ -240,6 +240,8 @@ def update(values: dict[str, Any], allow_hidden: bool = False) -> dict[str, Any]
         raise SettingsError("Min Amazon price can't be larger than max price")
     if merged["posting_window_start"] >= merged["posting_window_end"]:
         raise SettingsError("Posting window start must be before its end")
+    if merged["discovery_time"] >= merged["posting_window_end"]:
+        raise SettingsError("Daily queue build time must be before the posting window ends, or nothing gets posted")
     with _lock:
         with session_scope() as s:
             for key, value in clean.items():

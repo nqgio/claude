@@ -569,11 +569,11 @@ def test_morning_queue_catch_up(sample_source, monkeypatch):
     from app.providers.base import SourcePaused
 
     st.update({"discovery_time": "07:30", "posting_window_start": "08:00", "posting_window_end": "22:00"})
-    queue._last_catchup = 0.0
+    queue._last_catchup = None
     assert _tick_at(monkeypatch, "07:00") == []                 # before build time: nothing
     assert _tick_at(monkeypatch, "09:15") == ["discovery"]      # PC was off at 07:30 → builds on next tick
     assert _tick_at(monkeypatch, "09:16") == []                 # no retry storm while it runs / just ran
-    queue._last_catchup = 0.0
+    queue._last_catchup = None
 
     # A CAPTCHA cuts the build short: today is NOT marked built, and it carries on after the cooldown.
     def blocked(*a, **k):
@@ -588,7 +588,7 @@ def test_morning_queue_catch_up(sample_source, monkeypatch):
     assert _tick_at(monkeypatch, "09:30") == []                 # still paused: waits, no hammering Amazon
     ap.resume("test")
     assert _tick_at(monkeypatch, "12:45") == ["discovery"]      # cooldown over → build resumes
-    queue._last_catchup = 0.0
+    queue._last_catchup = None
 
     # A crash mid-build (or the PC shutting down) also leaves today unbuilt.
     st.update({"product_source": "sample"})
@@ -602,5 +602,60 @@ def test_morning_queue_catch_up(sample_source, monkeypatch):
     # A normal build marks the day done, so no more catch-ups today.
     queue.build_queue("schedule")
     assert st.get("last_queue_build_date") == queue.local_now().date().isoformat()
-    queue._last_catchup = 0.0
+    queue._last_catchup = None
     assert _tick_at(monkeypatch, "15:00") == []
+
+
+def test_sweep_fixes(sample_source, calls, monkeypatch):
+    from datetime import timedelta
+
+    from app.models import utcnow
+    from app.services import refresh as rf
+
+    _window_all_day()
+    st.update({"listings_per_day": 2, "queue_backup_factor": 1})
+    queue.build_queue("test")
+    with session_scope() as s:
+        a, b = [q.id for q in s.query(QueueItem).filter_by(status="scheduled")]
+        qa, qb = s.get(QueueItem, a), s.get(QueueItem, b)
+        qa.scheduled_at = utcnow() - timedelta(hours=1)
+        qa.status = "posting"                          # app closed mid-post an hour ago
+        qb.scheduled_at = utcnow() - timedelta(minutes=5)
+        qb.queue_date = qb.queue_date - timedelta(days=1)  # yesterday's leftover
+    assert queue.due_items() == [a]                    # stuck one retried; yesterday's never posts late
+    with session_scope() as s:
+        assert s.get(QueueItem, a).status == "scheduled" and "interrupted" in s.get(QueueItem, a).message
+
+    # refresh: dry-run previews are skipped once you're live; product data is never older than 1 hour
+    queue.post_item(a)
+    seen_ages = []
+    monkeypatch.setattr(rf.products, "fetch", lambda asin, max_age_hours=None: seen_ages.append(max_age_hours) or
+                        (_ for _ in ()).throw(rf.ProviderError("stop here")))
+    st.update({"amazon_cache_hours": 6})
+    rf.run()
+    assert seen_ages == [1.0]
+    seen_ages.clear()
+    st.update({"dry_run": False})
+    rf.run()
+    assert seen_ages == []                              # the only listing is a dry-run preview
+
+    # settings: a build time after the posting window would mean nothing ever posts
+    with pytest.raises(st.SettingsError):
+        st.update({"discovery_time": "23:00", "posting_window_start": "08:00", "posting_window_end": "22:00"})
+
+
+def test_one_bad_new_order_does_not_block_the_others(live, monkeypatch):
+    queue.build_queue("test")
+    _post_all_scheduled()
+    handled = []
+
+    def after(oid):
+        handled.append(oid)
+        if len(handled) == 1:
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(orders, "_after_new_order", after)
+    assert orders.sync_orders()["new"] == 2
+    assert len(handled) == 2
+    with session_scope() as s:
+        assert "could not finish processing" in s.get(Order, handled[0]).flag_reason

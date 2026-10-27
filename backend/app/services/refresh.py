@@ -13,11 +13,17 @@ from . import products
 from .evaluate import pricing_params
 
 
+# A scheduled refresh never trusts product data older than this, whatever the cache setting.
+REFRESH_MAX_AGE_HOURS = 1.0
+
+
 def _ids(listing_ids: list[int] | None) -> list[int]:
     with session_scope() as s:
         q = s.query(Listing.id).filter(Listing.status != "ended")
         if listing_ids:
             q = q.filter(Listing.id.in_(listing_ids))
+        elif not st.get("dry_run"):
+            q = q.filter(Listing.dry_run.is_(False))  # once live, old dry-run previews don't use Amazon page reads
         return [r[0] for r in q.order_by(Listing.last_refreshed.is_(None).desc(), Listing.last_refreshed).all()]
 
 
@@ -28,7 +34,7 @@ def run(listing_ids: list[int] | None = None, force_fetch: bool = False) -> dict
         return stats
     activity.info("price", f"Refreshing {len(ids)} listing(s)")
     # When refreshing on a schedule, don't re-fetch anything fetched within the cache window.
-    max_age = 0 if force_fetch else None
+    max_age = 0 if force_fetch else min(float(st.get("amazon_cache_hours")), REFRESH_MAX_AGE_HOURS)
     for lid in ids:
         try:
             refresh_one(lid, stats, max_age)

@@ -89,7 +89,10 @@ def sync_orders() -> dict:
             activity.error("order", f"Could not process eBay order {ro.get('orderId')}: {exc}")
     st.set_internal("orders_last_sync", started.isoformat())
     for oid in new_ids:
-        _after_new_order(oid)
+        try:
+            _after_new_order(oid)
+        except Exception as exc:  # one bad order must not stop the others' auto-buy / quantity top-up
+            _flag(oid, "needs_attention", f"could not finish processing this new order: {exc}")
     if new_ids or n_updated:
         activity.info("order", f"Order sync: {len(new_ids)} new, {n_updated} updated")
     return {"new": len(new_ids), "updated": n_updated}

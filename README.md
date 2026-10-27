@@ -172,6 +172,7 @@ At the time you set (or on your chosen interval), the app re-opens every active 
 - If Amazon's price rises and the eBay price can't be raised right away (review mode is on, or eBay rejects the update), the listing's quantity is set to 0 until the price is fixed. A sale at the old price would lose money.
 - **Big price drops are held.** If a refresh would cut an eBay price by more than *Hold price drops bigger than* (default 40%), the price is left alone and the listing is flagged. A huge drop is usually a misread page: a coupon price, another seller's price or the wrong variant. Check Amazon, then press **Apply suggested price** on the listing. It is re-checked for profit before it's applied.
 - Automatic ordering re-checks the real Amazon checkout total and won't buy if the order would lose money.
+- A scheduled refresh always uses Amazon data less than 1 hour old, even if the cache setting is longer. Once you're live (dry-run off), old dry-run previews are skipped so they don't use Amazon page reads.
 - Every check is saved to the listing's **price history chart**, and every change goes in the activity log. **Refresh now** buttons are on the Listings page and on each listing.
 
 ### How money is calculated
