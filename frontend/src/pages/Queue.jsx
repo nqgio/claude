@@ -112,6 +112,9 @@ export default function Queue() {
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-3">
             <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${target ? Math.min(100, (posted / target) * 100) : 0}%` }} />
           </div>
+          {data?.dry_run_posted_today > 0 && (
+            <div className="mt-2 text-xs text-ink-3">+ {data.dry_run_posted_today} dry-run preview{data.dry_run_posted_today > 1 ? "s" : ""} (don't count)</div>
+          )}
         </div>
         <form
           className="card flex flex-col justify-center gap-3 p-4 md:col-span-2"

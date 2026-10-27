@@ -127,7 +127,12 @@ def test_dry_run_pipeline(sample_source, calls):
         assert all(len(l.title) <= 80 and l.breakdown["ebay_price"] == l.price for l in ls)
     # Dry run: only read-only eBay calls are allowed (category lookups), never writes.
     assert all(m == "GET" or path.endswith("/oauth2/token") for m, path, *_ in calls)
-    assert queue.schedule_today() == 0  # daily target reached
+    # Dry-run previews don't use up the day's listings, so the backups get scheduled next.
+    assert queue.posted_today_count() == 0 and queue.dry_run_posted_today_count() == 3
+    assert queue.schedule_today() == 3
+    _post_all_scheduled()
+    assert queue.schedule_today() == 0  # queue used up; Build queue now would refill it
+    assert queue.build_queue("test")["added"] == 0  # every sample product was already tried today
 
     # --- refresh: price change, out of stock, below floor, back in stock
     with session_scope() as s:

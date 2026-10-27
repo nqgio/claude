@@ -132,7 +132,10 @@ def _build_queue(trigger: str) -> dict:
                 old.status, old.message = "expired", "not posted on its day"
         todays = s.query(QueueItem).filter(QueueItem.queue_date == today).all()
         seen = {q.asin for q in todays}
-        have = sum(1 for q in todays if q.status in ("queued", "scheduled", "posting", "posted"))
+        dry = _dry_run_listing_ids(s, todays)
+        # Dry-run previews don't use up the day: in dry-run you can keep building and testing.
+        have = sum(1 for q in todays if q.status in ("queued", "scheduled", "posting")
+                   or (q.status == "posted" and q.listing_id not in dry))
     seen |= active_asins()
     activity.info("queued", f"Building today's queue ({trigger}): want {target}, have {have}")
     _progress(target=target, have=have)
@@ -243,10 +246,27 @@ def _mark_built(day: date) -> None:
     st.set_internal("last_queue_build_date", day.isoformat())
 
 
-def posted_today_count() -> int:
+def _dry_run_listing_ids(s, items) -> set[int]:
+    ids = [q.listing_id for q in items if q.listing_id]
+    if not ids:
+        return set()
+    return {r[0] for r in s.query(Listing.id).filter(Listing.id.in_(ids), Listing.dry_run.is_(True))}
+
+
+def _posted_today(dry_run: bool) -> int:
     with session_scope() as s:
-        return s.query(QueueItem).filter(QueueItem.status == "posted",
-                                         QueueItem.queue_date == local_now().date()).count()
+        posted = s.query(QueueItem).filter(QueueItem.status == "posted", QueueItem.queue_date == local_now().date()).all()
+        dry = _dry_run_listing_ids(s, posted)
+        return sum(1 for q in posted if (q.listing_id in dry) == dry_run)
+
+
+def posted_today_count() -> int:
+    """Real listings posted today. Dry-run previews don't count toward listings per day."""
+    return _posted_today(dry_run=False)
+
+
+def dry_run_posted_today_count() -> int:
+    return _posted_today(dry_run=True)
 
 
 def schedule_today() -> int:
