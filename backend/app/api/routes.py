@@ -447,9 +447,11 @@ def build_queue():
 # ---- orders --------------------------------------------------------------------------------------------------------
 
 @router.get("/orders")
-def list_orders(status: str | None = None, flag: str | None = None):
+def list_orders(status: str | None = None, flag: str | None = None, managed: bool | None = None):
     with session_scope() as s:
         q = s.query(Order)
+        if managed is not None:
+            q = q.filter(Order.managed.is_(managed))
         if status:
             q = q.filter(Order.status == status)
         if flag:
@@ -527,6 +529,17 @@ def order_clear_flag(oid: int):
     with session_scope() as s:
         o = s.get(Order, oid)
         o.flag, o.flag_reason = "", ""
+    return get_order(oid)
+
+
+class ManagedBody(BaseModel):
+    managed: bool
+
+
+@router.post("/orders/{oid}/managed")
+def order_managed(oid: int, body: ManagedBody):
+    get_order(oid)  # 404 if missing
+    orders.set_managed(oid, body.managed)
     return get_order(oid)
 
 

@@ -138,10 +138,13 @@ def _upsert(ro: dict, env: str) -> tuple[int, bool]:
                        .filter((Listing.sku == lines[0]["sku"]) | (Listing.ebay_listing_id == lines[0]["item_id"]))
                        .order_by(Listing.id.desc()).first())
         if listing:
+            o.managed = True
             o.listing_id, o.asin, o.amazon_url = listing.id, listing.asin, listing.amazon_url
             cost_each = (listing.current_breakdown or listing.breakdown or {}).get("amazon_cost", listing.cost_at_listing)
             if o.amazon_cost is None:
                 o.amazon_cost_est = round(cost_each * o.quantity, 2)
+        elif is_new:
+            o.managed = False  # not one of this app's listings — leave it to you
         estimate_fees(o, listing)
         if not o.refund_is_actual and refunds:
             o.refund_to_buyer = round(refunds, 2)
@@ -160,11 +163,11 @@ def _after_new_order(order_id: int) -> None:
         o = s.get(Order, order_id)
         l = s.get(Listing, o.listing_id) if o.listing_id else None
         summary = f"New order {o.ebay_order_id}: {o.quantity}× '{o.title[:60]}' for ${o.revenue_total:.2f}"
-        if not l:
-            summary += " (no matching listing in this app)"
-        status, listing_id = o.status, o.listing_id
+        if not o.managed:
+            summary += " — not listed by this app, so it's left alone (no Amazon purchase)"
+        status, listing_id, managed = o.status, o.listing_id, o.managed
     activity.info("order", summary, order_id=order_id, listing_id=listing_id)
-    if status != "awaiting_purchase":
+    if status != "awaiting_purchase" or not managed:
         return
     if l and l.status == "active" and not st.get("dry_run"):  # eBay lowered quantity — top it back up
         try:
@@ -182,6 +185,17 @@ def _flag(order_id: int, flag: str, reason: str) -> None:
         o = s.get(Order, order_id)
         o.flag, o.flag_reason = flag, reason
     activity.warning("order", f"Order #{order_id} flagged ({flag}): {reason}", order_id=order_id)
+
+
+def set_managed(order_id: int, managed: bool) -> None:
+    """You decide: count this sale as one of the app's (profit KPIs, purchase steps) or leave it alone."""
+    with session_scope() as s:
+        o = s.get(Order, order_id)
+        o.managed = managed
+        if not managed and o.flag == "needs_attention":
+            o.flag, o.flag_reason = "", ""
+    activity.info("order", f"Order #{order_id} marked as {'managed by this app' if managed else 'not managed by this app'}"
+                           " from dashboard", order_id=order_id)
 
 
 def mark_purchased(order_id: int, amazon_order_id: str, amazon_cost: float | None, note: str = "",
@@ -227,6 +241,8 @@ def auto_buy(order_id: int) -> dict:
             return {"ok": False, "message": f"order is {o.status}"}
         if o.auto_buy_attempted:
             return {"ok": False, "message": "auto-buy was already attempted for this order — buy manually"}
+        if not o.managed:
+            return {"ok": False, "message": "not listed by this app — never bought on Amazon"}
         if not o.asin:
             _flag(order_id, "needs_attention", "auto-buy: order isn't linked to a listing/ASIN")
             return {"ok": False, "message": "no ASIN"}

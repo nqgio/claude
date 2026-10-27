@@ -194,6 +194,11 @@ Switch between **Manual** and **Automatic** ordering any time with the **Orderin
   - the kill switch is on.
 
   An order is never auto-bought twice. Anything unusual is flagged for you, with a screenshot.
+- **Your own eBay items are left alone.** The app only manages orders for listings it posted itself (custom label `AMZ-…`). Sales of anything you listed yourself go under **Other eBay sales** on the Orders page:
+  - they are **never bought on Amazon**, even with Automatic ordering on;
+  - they aren't counted in the dashboard's revenue or profit.
+
+  You can still add tracking to them there. If the app ever puts one in the wrong place, open it and click **Manage it** or **Not from this app — leave it alone**.
 - **Tracking:** the app reads tracking from your Amazon order page.
   - UPS, USPS and FedEx numbers are uploaded to eBay automatically.
   - **Amazon Logistics (TBA…) numbers are never uploaded.** The order is flagged **TBA – manual action** for you to decide.

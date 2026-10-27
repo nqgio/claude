@@ -387,3 +387,55 @@ def test_db_upgrade_adds_new_columns():
     init_db()
     assert "amazon_account_id" in {c["name"] for c in inspect(engine).get_columns("orders")}
     assert "ix_orders_amazon_account_id" in {i["name"] for i in inspect(engine).get_indexes("orders")}
+
+
+def test_own_ebay_items_are_never_bought_or_counted(live, monkeypatch):
+    """Sales of items you listed yourself (not through this app) are left alone, even with auto ordering on."""
+    from app.providers import get_provider
+    from app.services import accounts
+
+    queue.build_queue("test")
+    _post_all_scheduled()
+    accounts.create("Main")
+    own = ORDER("22-1", "MY-OWN-SKU")
+    own["lineItems"][0].update(legacyItemId="229999999999", title="Vintage lamp I already own")
+    monkeypatch.setattr(ebay, "get_orders_modified_since", lambda since: [ORDER("11-1", "AMZ-B0SAMPLE01"), own])
+
+    bought = []
+
+    def fake_place(asin, qty, address, guard, profile=None):
+        from app.providers.base import PurchaseResult
+
+        bought.append(asin)
+        return PurchaseResult(True, order_id="113-1111111-2222222", total_paid=15.10)
+
+    monkeypatch.setattr(get_provider(), "place_order", fake_place)
+    st.update({"checkout_mode": "auto", "auto_buy_max_order_dollars": 75})
+    orders.sync_orders()
+    assert bought == ["B0SAMPLE01"]  # only the app's own listing was bought
+    with session_scope() as s:
+        mine = s.query(Order).filter_by(ebay_order_id="22-1").one()
+        assert not mine.managed and mine.flag == "" and not mine.auto_buy_attempted and mine.status == "awaiting_purchase"
+        assert s.query(Order).filter_by(ebay_order_id="11-1").one().managed
+        mine_id = mine.id
+    assert "never bought" in orders.auto_buy(mine_id)["message"] and bought == ["B0SAMPLE01"]
+    k = metrics.overview("all")["kpis"]
+    assert k["orders"] == 1 and k["revenue"] == 24.37  # only the app's sale
+    orders.set_managed(mine_id, True)
+    assert metrics.overview("all")["kpis"]["orders"] == 2
+
+
+def test_upgrade_marks_old_unlinked_orders_unmanaged():
+    from sqlalchemy import text
+
+    from app.db import engine, init_db
+    from app.models import utcnow
+
+    with session_scope() as s:
+        s.add(Order(ebay_order_id="OLD-1", environment="production", created_at=utcnow()))
+    with engine.begin() as conn:
+        conn.execute(text("DROP INDEX ix_orders_managed"))
+        conn.execute(text("ALTER TABLE orders DROP COLUMN managed"))
+    init_db()
+    with session_scope() as s:
+        assert s.query(Order).filter_by(ebay_order_id="OLD-1").one().managed is False

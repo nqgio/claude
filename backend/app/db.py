@@ -48,15 +48,21 @@ def init_db() -> None:
     from . import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(engine)
-    _add_missing_columns()
+    added = _add_missing_columns()
+    if ("orders", "managed") in added:  # orders synced before v1.10: managed = matched one of this app's listings
+        from sqlalchemy import text
+
+        with engine.begin() as conn:
+            conn.execute(text('UPDATE orders SET managed = (listing_id IS NOT NULL)'))
 
 
-def _add_missing_columns() -> None:
+def _add_missing_columns() -> set[tuple[str, str]]:
     """Lightweight migration: when an update adds a column to an existing table,
     add it to the user's database (create_all only creates missing tables)."""
     from sqlalchemy import inspect, text
 
     insp = inspect(engine)
+    added = set()
     with engine.begin() as conn:
         for table in Base.metadata.sorted_tables:
             if not insp.has_table(table.name):
@@ -70,5 +76,7 @@ def _add_missing_columns() -> None:
                 if default is not None:
                     ddl += f" DEFAULT {int(default) if isinstance(default, bool) else repr(default)}"
                 conn.execute(text(ddl))
+                added.add((table.name, col.name))
             for idx in table.indexes:
                 idx.create(conn, checkfirst=True)
+    return added

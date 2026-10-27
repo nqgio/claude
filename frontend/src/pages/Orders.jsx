@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink, MapPin, RefreshCw, ShoppingBag, ShoppingCart, Truck, Users, Wallet } from "lucide-react";
+import { AlertTriangle, EyeOff, ExternalLink, MapPin, RefreshCw, ShoppingBag, ShoppingCart, Truck, Users, Wallet } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api";
 import AmazonAccounts, { OrderingToggle } from "../components/AmazonAccounts";
@@ -71,10 +71,28 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
         </div>
       )}
 
+      {!o.managed && (
+        <div className="flex gap-3 rounded-xl border border-line bg-surface-2 p-3.5 text-[13px] text-ink-2">
+          <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" />
+          <div className="flex-1">
+            <div className="font-semibold text-ink">Not managed by this app</div>
+            <div className="mt-0.5">This item wasn't listed by the app, so it's one of your own. It's never bought on Amazon and isn't counted in the dashboard's revenue or profit.</div>
+          </div>
+          <ActionButton size="sm" confirm="Count this order as one of the app's? It will show in profit numbers. It still won't be auto-bought."
+            action={() => api.post(`/orders/${o.id}/managed`, { managed: true })} onDone={update} success="Now managed by this app">Manage it</ActionButton>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-[13px] font-semibold">{o.quantity}× {o.title}</div>
-          <div className="mt-1 font-mono text-xs text-ink-3">{o.asin || "no linked listing"}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-xs text-ink-3">
+            {o.asin || "no linked listing"}
+            {o.managed && !o.asin && (
+              <ActionButton size="sm" icon={EyeOff} action={() => api.post(`/orders/${o.id}/managed`, { managed: false })} onDone={update}
+                success="Moved to Other eBay sales">Not from this app — leave it alone</ActionButton>
+            )}
+          </div>
         </div>
         {o.amazon_url && (
           <a href={o.amazon_url} target="_blank" rel="noreferrer"
@@ -84,7 +102,7 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
         )}
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className={cx("grid gap-5", o.managed && "md:grid-cols-2")}>
         <Section title="Ship to" icon={MapPin}>
           <div className="space-y-1.5">
             {fields.map(([k, v]) => (
@@ -97,7 +115,7 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
           </div>
           <div className="mt-3"><CopyButton text={addressBlock(o)} label="Copy full address" /></div>
         </Section>
-        <Section title="Profit" icon={Wallet}>
+        {o.managed && <Section title="Profit" icon={Wallet}>
           <Money label="Revenue" value={f.revenue} />
           <Money label="Buyer tax (eBay remits)" value={f.buyer_tax} negative />
           <Money label="Amazon cost" value={f.amazon_cost} est={!f.amazon_cost_is_actual} negative />
@@ -106,10 +124,10 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
           {f.refund_to_buyer > 0 && <Money label="Refund to buyer" value={f.refund_to_buyer} negative />}
           {f.amazon_refund > 0 && <Money label="Amazon refund" value={f.amazon_refund} />}
           <div className="mt-1 border-t border-line pt-1.5"><Money label="Profit" value={f.profit} strong /></div>
-        </Section>
+        </Section>}
       </div>
 
-      <Section step="1" title="Amazon purchase">
+      {o.managed && <Section step="1" title="Amazon purchase">
         {o.status === "awaiting_purchase" && nextAcct && (
           <p className="mb-3 text-[12.5px] text-ink-2">
             Buy with <strong className="font-semibold text-ink">{nextAcct.name}</strong> (next in your account rotation).
@@ -140,9 +158,9 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
               action={() => api.post(`/orders/${o.id}/auto-buy`)}>Auto-buy now</ActionButton>
           </div>
         )}
-      </Section>
+      </Section>}
 
-      <Section step="2" title="Tracking">
+      <Section step={o.managed ? "2" : null} icon={Truck} title="Tracking">
         <div className="flex flex-wrap gap-2">
           <input placeholder="Tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} className="min-w-[200px] flex-1" />
           <select value={carrier} onChange={(e) => setCarrier(e.target.value)} className="w-44">
@@ -168,7 +186,7 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
         )}
       </Section>
 
-      <Section step="3" title="Adjustments">
+      <Section step={o.managed ? "3" : null} icon={Wallet} title="Adjustments">
         <div className="flex flex-wrap items-center gap-2">
           <input placeholder="Amazon refund ($)" type="number" step="0.01" value={refund} onChange={(e) => setRefund(e.target.value)} className="w-44" />
           <ActionButton action={() => api.post(`/orders/${o.id}/amazon-refund`, { amount: Number(refund || 0) })} onDone={update} success="Refund saved">
@@ -189,8 +207,9 @@ function OrderPanel({ order, onChange, checkoutMode, accts }) {
 
 export default function Orders({ status: appStatus, reloadStatus }) {
   const [status, setStatus] = useState("");
+  const [view, setView] = useState("app"); // app = orders for this app's listings, other = your own items
   const [showAccounts, setShowAccounts] = useState(false);
-  const [rows, reload] = useLoad(() => api.get(`/orders${status ? `?status=${status}` : ""}`), [status], 30000);
+  const [rows, reload] = useLoad(() => api.get(`/orders?managed=${view === "app"}${status ? `&status=${status}` : ""}`), [status, view], 30000);
   const [accts, reloadAccts] = useLoad(() => api.get("/amazon/accounts"), [], 60000);
   const [open, setOpen] = useState(null);
   const needs = (rows || []).filter((o) => o.status === "awaiting_purchase").length;
@@ -207,14 +226,14 @@ export default function Orders({ status: appStatus, reloadStatus }) {
     },
     { key: "ship_name", label: "Buyer", render: (o) => <div className="whitespace-nowrap">{o.ship_name}<div className="text-xs text-ink-3">{o.ship_city}, {o.ship_state}</div></div> },
     { key: "revenue_total", label: "Revenue", align: "right", render: (o) => money(o.revenue_total) },
-    { key: "cost", label: "Cost", align: "right", sort: (o) => o.financials.amazon_cost, render: (o) => <span className={o.financials.amazon_cost_is_actual ? "" : "text-ink-3"}>{money(o.financials.amazon_cost)}</span> },
+    ...(view === "other" ? [] : [{ key: "cost", label: "Cost", align: "right", sort: (o) => o.financials.amazon_cost, render: (o) => <span className={o.financials.amazon_cost_is_actual ? "" : "text-ink-3"}>{money(o.financials.amazon_cost)}</span> },
     { key: "fees", label: "Fees", align: "right", sort: (o) => o.financials.ebay_fees + o.financials.promo_fee, render: (o) => <span className={o.financials.fees_are_actual ? "" : "text-ink-3"}>{money(o.financials.ebay_fees + o.financials.promo_fee)}</span> },
-    { key: "profit", label: "Profit", align: "right", sort: (o) => o.financials.profit, render: (o) => <span className={cx("font-medium", o.financials.profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>{money(o.financials.profit)}</span> },
+    { key: "profit", label: "Profit", align: "right", sort: (o) => o.financials.profit, render: (o) => <span className={cx("font-medium", o.financials.profit < 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400")}>{money(o.financials.profit)}</span> }]),
     {
       key: "status", label: "Status",
       render: (o) => (
         <div className="flex flex-col items-start gap-1">
-          <StatusBadge status={o.status} />
+          {o.managed ? <StatusBadge status={o.status} /> : <Badge>{o.status === "awaiting_purchase" ? "Not managed" : statusLabel(o.status)}</Badge>}
           {o.flag === "tba_manual" && <Badge color="red">TBA – manual</Badge>}
           {o.flag && o.flag !== "tba_manual" && <Badge color="red">Needs attention</Badge>}
         </div>
@@ -226,7 +245,8 @@ export default function Orders({ status: appStatus, reloadStatus }) {
     <>
       <PageHeader
         title="Orders"
-        description={needs ? `${needs} order${needs > 1 ? "s" : ""} waiting to be purchased on Amazon.` : "Every eBay order, its costs and fulfillment."}
+        description={view === "other" ? "eBay sales of items this app didn't list. Never bought on Amazon, not counted in profit."
+          : needs ? `${needs} order${needs > 1 ? "s" : ""} waiting to be purchased on Amazon.` : "Every eBay order, its costs and fulfillment."}
         actions={
           <>
             <div className="flex items-center gap-2 text-[13px] text-ink-2">
@@ -242,6 +262,8 @@ export default function Orders({ status: appStatus, reloadStatus }) {
       />
       <Card padded={false}>
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
+          <Segmented value={view} onChange={(v) => { setView(v); setOpen(null); }}
+            options={[["app", "This app's orders"], ["other", "Other eBay sales"]]} />
           <Segmented value={status} onChange={setStatus}
             options={[["", "All"], ["awaiting_purchase", "Needs purchase"], ["purchased", "Purchased"], ["shipped", "Shipped"], ["tracking_uploaded", "Tracked"], ["delivered", "Delivered"]]} />
           <select value={STATUSES.slice(5).includes(status) ? status : ""} onChange={(e) => setStatus(e.target.value)} className="w-40">
@@ -250,14 +272,16 @@ export default function Orders({ status: appStatus, reloadStatus }) {
           </select>
         </div>
         <Table columns={cols} rows={rows} loading onRowClick={setOpen} initialSort={{ key: "created_at", dir: "desc" }}
-          empty={<EmptyState icon={ShoppingBag} title="No orders yet" text="Orders sync from eBay every few minutes once eBay is connected." />} />
+          empty={view === "other"
+            ? <EmptyState icon={EyeOff} title="No other sales" text="Sales of items you listed yourself (not through this app) show up here and are left alone." />
+            : <EmptyState icon={ShoppingBag} title="No orders yet" text="Orders sync from eBay every few minutes once eBay is connected." />} />
       </Card>
       <Modal open={showAccounts} onClose={() => { setShowAccounts(false); reloadAccts(); }} title="Amazon accounts" wide
         subtitle="Add the accounts you buy with. Each logs in once in its own browser window; passwords and cards are never stored.">
         <AmazonAccounts status={appStatus} reloadStatus={reloadStatus} bare />
       </Modal>
       <Drawer open={!!open} onClose={() => setOpen(null)} title={open ? `Order ${open.ebay_order_id}` : ""}
-        subtitle={open && <span className="flex flex-wrap items-center gap-2"><StatusBadge status={open.status} /> {when(open.created_at)} · buyer {open.buyer_username}</span>}>
+        subtitle={open && <span className="flex flex-wrap items-center gap-2">{open.managed ? <StatusBadge status={open.status} /> : <Badge>Not managed</Badge>} {when(open.created_at)} · buyer {open.buyer_username}</span>}>
         {open && <OrderPanel key={open.id} order={open} onChange={() => { reload(); reloadAccts(); }} checkoutMode={appStatus?.checkout_mode} accts={accts} />}
       </Drawer>
     </>

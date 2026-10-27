@@ -148,6 +148,8 @@ class Order(Base):
     ebay_payment_status: Mapped[str] = mapped_column(String(30), default="")
     flag: Mapped[str] = mapped_column(String(40), default="")  # tba_manual | needs_attention | ...
     flag_reason: Mapped[str] = mapped_column(Text, default="")
+    # False = a sale of an item this app didn't list (your own stock): never bought on Amazon, left out of profit KPIs
+    managed: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
     buyer_username: Mapped[str] = mapped_column(String(100), default="")
     ship_name: Mapped[str] = mapped_column(String(200), default="")

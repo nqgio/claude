@@ -36,7 +36,7 @@ def _local_day(dt: datetime) -> str:
 def overview(rng: str = "30d", start: str | None = None, end: str | None = None) -> dict:
     s_dt, e_dt = resolve_range(rng, start, end)
     with session_scope() as s:
-        oq = s.query(Order).filter(Order.created_at < e_dt)
+        oq = s.query(Order).filter(Order.created_at < e_dt, Order.managed.is_(True))
         lq = s.query(Listing).filter(Listing.created_at < e_dt)
         if s_dt:
             oq, lq = oq.filter(Order.created_at >= s_dt), lq.filter(Listing.created_at >= s_dt)
