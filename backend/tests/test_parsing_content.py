@@ -119,3 +119,18 @@ def test_description_template(fresh_db):
     d = make_description(p, "My <Title>", 1)
     assert "<h1>My &lt;Title&gt;</h1>" in d and "<li" in d and "<img src=" in d
     assert "script" not in d and "onclick" not in d and "{{nope}}" in d
+
+
+def test_required_dimensions_filled_from_amazon_product_dimensions():
+    from app.providers.base import ProductData
+    from app.services.content import build_aspects
+
+    p = ProductData(asin="B0X", url="", title="Bamboo Drawer Organizer", brand="Kitchenry", price=20.0, in_stock=True,
+                    details={"Product Dimensions": '15"L x 3"W x 2.5"H', "Material Type": "Bamboo"})
+    cat = [{"name": "Item Length", "required": True, "mode": "FREE_TEXT", "values": ()},
+           {"name": "Material", "required": True, "mode": "FREE_TEXT", "values": ()},
+           {"name": "Blade Material", "required": True, "mode": "FREE_TEXT", "values": ()}]
+    aspects, missing = build_aspects(p, cat)
+    assert aspects["Item Length"] == ["15 in"] and aspects["Item Width"] == ["3 in"]
+    assert aspects["Material"] == ["Bamboo"]
+    assert missing == ["Blade Material"]

@@ -764,3 +764,16 @@ def test_removing_a_scheduled_item_shifts_the_schedule_up(sample_source, monkeyp
         with session_scope() as s:
             s.get(QueueItem, second).status = "posted"
         queue.remove_item(second)
+
+
+def test_products_ebay_cant_accept_are_skipped_at_queue_time(live, monkeypatch):
+    from app.ebay import api as ebay_api
+
+    monkeypatch.setattr(ebay_api, "item_aspects", lambda cid: [
+        {"name": "Brand", "required": True, "mode": "FREE_TEXT", "values": ()},
+        {"name": "Blade Material", "required": True, "mode": "FREE_TEXT", "values": ()}])
+    res = queue.build_queue("test")
+    assert res["added"] == 0
+    with session_scope() as s:
+        skipped = s.query(QueueItem).filter_by(status="skipped").all()
+        assert skipped and all("eBay requires Blade Material" in q.message for q in skipped)

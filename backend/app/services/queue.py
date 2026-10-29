@@ -226,7 +226,15 @@ def _build_queue(trigger: str) -> dict:
             if not ev["ok"]:
                 activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {'; '.join(ev['reasons'])}", asin=p.asin)
                 continue
-            add_candidate(p, ev, "auto", today=today, search_term=lane["label"])
+            qid = add_candidate(p, ev, "auto", today=today, search_term=lane["label"])
+            with session_scope() as s:
+                q = s.get(QueueItem, qid)
+                missing = (q.preview or {}).get("missing_required_aspects") or []
+                if missing:  # eBay would refuse to publish it; find another product instead
+                    q.status, q.message = "skipped", _missing_msg(missing)
+            if missing:
+                activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {_missing_msg(missing)}", asin=p.asin)
+                continue
             b = ev["breakdown"]
             activity.info("found", f"Queued {p.asin} '{p.title[:60]}' from “{lane['label']}” — Amazon "
                                    f"${b['amazon_price']:.2f} → eBay ${b['ebay_price']:.2f}, profit ${b['profit']:.2f}",
@@ -490,6 +498,11 @@ def post_item(item_id: int) -> dict:
         return {"ok": False, "message": str(exc)}
 
 
+def _missing_msg(missing: list[str]) -> str:
+    return (f"eBay requires {', '.join(missing)} for this category and the Amazon page doesn't show "
+            f"{'it' if len(missing) == 1 else 'them'}")
+
+
 def _finish(item_id: int, status: str, message: str, listing_id: int | None = None) -> None:
     with session_scope() as s:
         item = s.get(QueueItem, item_id)
@@ -510,6 +523,8 @@ def _create_listing(p, b: dict, c: dict) -> int:
                quantity=qty, status="active", amazon_price_at_listing=b["amazon_price"], cost_at_listing=b["amazon_cost"],
                breakdown=b, current_breakdown=b, current_amazon_price=b["amazon_price"], current_in_stock=p.in_stock,
                expected_profit=b["profit"], last_refreshed=utcnow())
+    if c["missing_required_aspects"]:
+        raise ListingFailed(_missing_msg(c["missing_required_aspects"]))
     if dry:
         with session_scope() as s:
             l = Listing(**row)
@@ -527,9 +542,6 @@ def _create_listing(p, b: dict, c: dict) -> int:
         raise ListingFailed("Settings missing: " + ", ".join(missing) + " (Settings → Listing defaults)")
     if not c["category_id"]:
         raise ListingFailed(f"No eBay category: {c['category_note']}")
-    if c["missing_required_aspects"]:
-        activity.warning("listed", f"{p.asin}: eBay requires item specifics we couldn't fill: "
-                                   f"{', '.join(c['missing_required_aspects'])}", asin=p.asin)
     loc_key = s_all["merchant_location_key"]
     ready = dict(s_all["ebay_location_ready"] or {})
     if ready.get(env) != f"{loc_key}:{s_all['item_location_zip']}":

@@ -167,6 +167,52 @@ def _clip(v: str) -> str:
     return re.sub(r"\s+", " ", v).strip()[:65]
 
 
+_UNITS = {"in": "in", "inch": "in", "inches": "in", '"': "in", "cm": "cm", "centimeters": "cm", "mm": "mm",
+          "millimeters": "mm", "ft": "ft", "feet": "ft", "m": "m", "meters": "m"}
+_NUM = r"(\d+(?:\.\d+)?)"
+_DIM_KEYS = ("Product Dimensions", "Item Dimensions L x W x H", "Item Dimensions  L x W x H", "Item Dimensions",
+             "Dimensions", "Size", "Package Dimensions")
+
+
+def parse_dimensions(details: dict) -> dict[str, str]:
+    """'10"L x 5"W x 3"H', '12 x 8 x 4 inches', '30 x 20 x 10 cm; 1.2 Pounds' → {"Item Length": "10 in", ...}."""
+    out: dict[str, str] = {}
+    for key in _DIM_KEYS:
+        raw = next((v for k, v in details.items() if k.strip().lower() == key.lower() and v), None)
+        if not raw:
+            continue
+        text = raw.replace("″", '"').replace("”", '"')
+        dims = text.split(";")[0]
+        unit_m = re.search(r'(inches|inch|in\b|"|centimeters|cm\b|millimeters|mm\b|feet|ft\b|meters|m\b)', dims, re.I)
+        unit = _UNITS.get(unit_m.group(1).lower(), "in") if unit_m else "in"
+        parts = re.findall(_NUM + r'\s*(?:"|in(?:ches)?|cm|mm)?\s*([LWHD])?\b', dims)
+        nums = [(float(n), (lab or "").upper()) for n, lab in parts][:3]
+        if len(nums) >= 2:
+            labeled = {lab: n for n, lab in nums if lab}
+            order = [n for n, _ in nums]
+            fmt = lambda v: f"{v:g} {unit}"  # noqa: E731
+            out["Item Length"] = fmt(labeled.get("L", order[0]))
+            out["Item Width"] = fmt(labeled.get("W", order[1]))
+            third = order[2] if len(order) > 2 else None
+            h = labeled.get("H", third if "D" not in labeled or "H" in labeled else None)
+            d = labeled.get("D", h)
+            if h is not None:
+                out["Item Height"] = fmt(h)
+            if d is not None:
+                out["Item Depth"] = fmt(d)
+        w = re.search(_NUM + r"\s*(pounds|pound|lbs?|ounces|ounce|oz|kilograms|kg|grams|g)\b", text, re.I)
+        if w:
+            out["Item Weight"] = f"{float(w.group(1)):g} {w.group(2)}"
+        if out:
+            break
+    for name, keys in (("Item Weight", ("Item Weight", "Weight")), ("Item Length", ("Item Length", "Length")),
+                       ("Item Width", ("Item Width", "Width")), ("Item Height", ("Item Height", "Height"))):
+        v = next((details[k] for k in keys if details.get(k)), None)
+        if v and name not in out:
+            out[name] = _clip(v)
+    return out
+
+
 def build_aspects(p: ProductData, category_aspects: list[dict] | None = None) -> tuple[dict[str, list[str]], list[str]]:
     """Map Amazon details → eBay item specifics. Returns (aspects, missing_required_names)."""
     aspects: dict[str, list[str]] = {}
@@ -175,6 +221,8 @@ def build_aspects(p: ProductData, category_aspects: list[dict] | None = None) ->
             if p.details.get(k):
                 aspects[name] = [_clip(p.details[k])]
                 break
+    for name, val in parse_dimensions(p.details).items():
+        aspects.setdefault(name, [val])
     aspects["Brand"] = [_clip(p.brand)] if p.brand else aspects.get("Brand", ["Unbranded"])
     aspects.setdefault("MPN", ["Does Not Apply"])
     missing = []
@@ -192,6 +240,10 @@ def build_aspects(p: ProductData, category_aspects: list[dict] | None = None) ->
             val = allowed(aspects.get(name, [None])[0])
             if not val:
                 val = allowed(lower_details.get(name.lower()))
+            if not val:  # close names: "Material" ↔ "Material Type", "Color" ↔ "Color Name"
+                nl = name.lower()
+                val = allowed(next((v for k, v in lower_details.items() if v and (k.startswith(nl + " ") or
+                                                                                 nl.startswith(k + " "))), None))
             if not val and name == "Type" and p.category:
                 val = allowed(p.category.split(">")[-1].strip())
             if not val and restricted:

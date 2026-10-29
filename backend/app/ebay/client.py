@@ -246,7 +246,8 @@ def request(method: str, path: str, *, json: object = None, params: dict | None 
                 msgs = "; ".join(e.get("longMessage") or e.get("message", "") for e in body.get("errors", [])) or r.text
             except ValueError:
                 body, msgs = r.text, r.text
-            raise EbayError(f"eBay {method} {path} failed ({r.status_code}): {msgs[:600]}", r.status_code, body)
+            # eBay's own explanation first, so it's readable even where the message is cut short on screen.
+            raise EbayError(f"eBay says: {msgs[:600]} [{method} {path} → {r.status_code}]", r.status_code, body)
         return r
 
 
