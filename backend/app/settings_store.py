@@ -147,6 +147,7 @@ SPECS: list[Spec] = [
 
     # --- internal state -----------------------------------------------------
     Spec("last_queue_build_date", None, "str", "internal", "", hidden=True),
+    Spec("blocklist_seed_version", None, "int", "internal", "", hidden=True),
     Spec("ebay_refresh_token_expires", {}, "dict", "internal", "", hidden=True),
     Spec("ebay_campaign_ids", {}, "dict", "internal", "", hidden=True),
     Spec("ebay_location_ready", {}, "dict", "internal", "", hidden=True),

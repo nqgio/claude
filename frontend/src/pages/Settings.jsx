@@ -238,15 +238,21 @@ function Blocklist() {
     <div className="space-y-5">
       <div className="flex flex-wrap gap-2">
         <input placeholder="Brand or keyword" value={term} onChange={(e) => setTerm(e.target.value)} className="w-56" />
-        <Segmented value={kind} onChange={setKind} options={[["brand", "Brand"], ["keyword", "Keyword"]]} />
+        <Segmented value={kind} onChange={setKind} options={[["brand", "Brand"], ["brand_exact", "Exact brand"], ["keyword", "Keyword"]]} />
         <ActionButton kind="primary" action={() => api.post("/blocklist", { term, kind })} onDone={() => { setTerm(""); reload(); }} success="Added">Add</ActionButton>
         <input placeholder="Filter…" value={filter} onChange={(e) => setFilter(e.target.value)} className="ml-auto w-44" />
       </div>
+      <p className="text-xs text-ink-3">
+        <strong className="font-medium text-ink-2">Brand</strong> blocks the name anywhere: brand, title or description (catches “for KitchenAid mixer”).{" "}
+        <strong className="font-medium text-ink-2">Exact brand</strong> is for names that are everyday words (Apple, Shark, Ring): only blocked when it's the product's actual brand.{" "}
+        <strong className="font-medium text-ink-2">Keyword</strong> blocks a word or phrase anywhere. {rows && <span>{rows.length} entries.</span>}
+      </p>
       <div className="flex max-h-52 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-line bg-surface-2 p-3">
         {shown.map((r) => (
           <span key={r.id} className="inline-flex items-center gap-1 rounded-md bg-surface py-0.5 pr-1 pl-2 text-xs ring-1 ring-line">
             {r.term}
             {r.kind === "keyword" && <span className="text-[10px] text-ink-3 uppercase">kw</span>}
+            {r.kind === "brand_exact" && <span className="text-[10px] text-ink-3 uppercase" title="Only blocked when it's the product's brand">exact</span>}
             <button className="rounded px-1 text-ink-3 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label={`Remove ${r.term}`}
               onClick={async () => { await api.del(`/blocklist/${r.id}`); reload(); }}>×</button>
           </span>

@@ -157,7 +157,7 @@ Upgrading from an earlier version? Your existing Amazon login is kept automatica
 | **Orders & checkout** | Assisted vs auto checkout, Amazon account rotation (take turns / least used today), kill switch, max order $, max orders/day, max spend/day, hold if delivery isn't free, how often to sync orders and check tracking |
 | **Amazon accounts** | Add/remove buying accounts, log in to each, per-account on/off, "buys orders", max orders/day and max spend/day |
 | **Amazon scraper** | Max pages per hour, random delay range, cache time, cooldown after a CAPTCHA, hidden vs visible browser |
-| **Blocklist** | Add/remove/import CSV of brands and keywords; scan active listings and flag or end matches |
+| **Blocklist** | Comes with about 670 well-known brands (VeRO-prone and easy-to-compare names). **Brand** blocks the name anywhere (brand, title, description, so "for KitchenAid mixer" is caught). **Exact brand** is for names that are everyday words (Apple, Shark, Ring): only blocked when it's the product's real brand, so an apple slicer still gets through. **Keyword** blocks a phrase anywhere. Add/remove/import CSV (`term` or `term,kind` per line, kind = brand / exact / keyword); scan active listings and flag or end matches. App updates add new starter brands automatically but never re-add ones you removed. |
 
 ### How the nightly refresh works
 

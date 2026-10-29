@@ -10,23 +10,10 @@ from dataclasses import dataclass
 from .db import session_scope
 from .models import BlocklistEntry
 
-# Starter list: brands that reseller communities commonly report as filing VeRO
-# notices against unauthorized resellers, plus counterfeit-signal keywords.
-# It is a starting point, not an authoritative or complete list — review and edit it.
-SEED_BRANDS = """
-Adidas, Apple, Beats, Bose, Brooks, Burberry, Canada Goose, Cartier, Chanel, Coach, Columbia, Converse, Crocs,
-Dior, Disney, Dr. Martens, Dyson, Fendi, Fitbit, Funko, Gucci, GoPro, Hasbro, Hermes, Hydro Flask, Jordan,
-Kate Spade, KitchenAid, Le Creuset, Lego, LifeProof, Louis Vuitton, Lululemon, Marvel, Mattel, Michael Kors,
-Microsoft, Moncler, Nespresso, New Balance, Nike, Nintendo, North Face, Oakley, OtterBox, Pandora, Patagonia,
-Pokemon, Prada, Ralph Lauren, Ray-Ban, Rolex, Samsonite, Skullcandy, Sony, Stanley, Star Wars, Swarovski,
-Tiffany, Tommy Hilfiger, Tory Burch, Ugg, Under Armour, Vans, Vera Bradley, Versace, Vitamix, Yeti, Zippo,
-Olaplex, Dermalogica, Clinique, Estee Lauder, MAC Cosmetics, Urban Decay, Too Faced, Benefit Cosmetics,
-Fenty Beauty, Kylie Cosmetics, Moroccanoil, Paul Mitchell, Revlon, Philips Sonicare, Oral-B, SharkNinja,
-Shark, Ninja, Instant Pot, Keurig, Milwaukee, DeWalt, Makita, Snap-on, JBL, Harman Kardon, Bang & Olufsen,
-Hot Wheels, Barbie, Peppa Pig, Paw Patrol, Squishmallows, Hello Kitty, Sanrio, NFL, NBA, MLB, NHL
-"""
-SEED_KEYWORDS = ["replica", "knockoff", "counterfeit", "inspired by", "dupe", "1:1 copy", "aaa quality",
-                 "unbranded designer", "fake"]
+from . import brand_list
+
+KINDS = ("brand", "brand_exact", "keyword")
+SEED_VERSION = 2  # bump when brand_list grows; existing blocklists get the new entries on startup
 
 
 def normalize(text: str) -> str:
@@ -63,22 +50,47 @@ class Blocklist:
     def check(self, brand: str = "", title: str = "", description: str = "") -> Match | None:
         fields = [("brand", normalize(brand)), ("title", normalize(title)), ("description", normalize(description))]
         for term, kind, pat in self.entries:
-            for name, text in fields:
+            # "brand_exact" terms are everyday words (Apple, Shark, Ring): only the product's own brand counts.
+            for name, text in (fields[:1] if kind == "brand_exact" else fields):
                 if text and pat.search(text):
-                    return Match(term, kind, name)
+                    return Match(term, "brand" if kind == "brand_exact" else kind, name)
         return None
 
 
 def seed_if_empty() -> int:
+    """Fill an empty blocklist with the starter list; on an existing one, add what newer versions brought."""
+    from . import settings_store as st
+
     with session_scope() as s:
-        if s.query(BlocklistEntry).count():
-            return 0
-        brands = [b.strip() for b in SEED_BRANDS.replace("\n", " ").split(",") if b.strip()]
-        for b in brands:
-            s.add(BlocklistEntry(term=b, kind="brand", source="seed"))
-        for k in SEED_KEYWORDS:
-            s.add(BlocklistEntry(term=k, kind="keyword", source="seed"))
-        return len(brands) + len(SEED_KEYWORDS)
+        empty = s.query(BlocklistEntry).count() == 0
+    version = st.get("blocklist_seed_version") or (0 if empty else 1)
+    if version >= SEED_VERSION:
+        return 0
+    n = upgrade_seed(version)
+    st.set_internal("blocklist_seed_version", SEED_VERSION)
+    return n
+
+
+def upgrade_seed(from_version: int) -> int:
+    """Add starter entries that aren't there yet. Starter brands that are everyday words become exact-brand
+    matches (stops "apple slicer" being blocked). Your own entries are never changed, and nothing you removed
+    from an older starter list comes back except entries new in this version."""
+    added = 0
+    exact = {normalize(t) for t, k in brand_list.entries() if k == "brand_exact"}
+    with session_scope() as s:
+        rows = s.query(BlocklistEntry).all()
+        have = {normalize(e.term) for e in rows}
+        for e in rows:
+            if e.source == "seed" and e.kind == "brand" and normalize(e.term) in exact:
+                e.kind = "brand_exact"
+        for term, kind in brand_list.entries():
+            key = normalize(term)
+            if key in have or (from_version >= 1 and key in SEED_V1):
+                continue  # already there, or a v1 starter entry you deleted on purpose
+            s.add(BlocklistEntry(term=term, kind=kind, source="seed"))
+            have.add(key)
+            added += 1
+    return added
 
 
 def add_terms(terms: list[tuple[str, str]], source: str = "user") -> int:
@@ -86,8 +98,10 @@ def add_terms(terms: list[tuple[str, str]], source: str = "user") -> int:
     with session_scope() as s:
         existing = {(normalize(e.term), e.kind) for e in s.query(BlocklistEntry).all()}
         for term, kind in terms:
-            term, kind = term.strip(), (kind or "brand").strip().lower()
-            if kind not in ("brand", "keyword"):
+            term, kind = term.strip(), (kind or "brand").strip().lower().replace(" ", "_")
+            if kind in ("exact", "brand-exact"):
+                kind = "brand_exact"
+            if kind not in KINDS:
                 kind = "brand"
             key = (normalize(term), kind)
             if not key[0] or key in existing:
@@ -110,3 +124,19 @@ def parse_csv(text: str) -> list[tuple[str, str]]:
             continue  # header
         rows.append((term, kind))
     return rows
+
+
+# The first starter list (v1), so an upgrade doesn't re-add v1 brands you deliberately removed.
+SEED_V1 = {normalize(b) for b in """
+Adidas, Apple, Beats, Bose, Brooks, Burberry, Canada Goose, Cartier, Chanel, Coach, Columbia, Converse, Crocs,
+Dior, Disney, Dr. Martens, Dyson, Fendi, Fitbit, Funko, Gucci, GoPro, Hasbro, Hermes, Hydro Flask, Jordan,
+Kate Spade, KitchenAid, Le Creuset, Lego, LifeProof, Louis Vuitton, Lululemon, Marvel, Mattel, Michael Kors,
+Microsoft, Moncler, Nespresso, New Balance, Nike, Nintendo, North Face, Oakley, OtterBox, Pandora, Patagonia,
+Pokemon, Prada, Ralph Lauren, Ray-Ban, Rolex, Samsonite, Skullcandy, Sony, Stanley, Star Wars, Swarovski,
+Tiffany, Tommy Hilfiger, Tory Burch, Ugg, Under Armour, Vans, Vera Bradley, Versace, Vitamix, Yeti, Zippo,
+Olaplex, Dermalogica, Clinique, Estee Lauder, MAC Cosmetics, Urban Decay, Too Faced, Benefit Cosmetics,
+Fenty Beauty, Kylie Cosmetics, Moroccanoil, Paul Mitchell, Revlon, Philips Sonicare, Oral-B, SharkNinja,
+Shark, Ninja, Instant Pot, Keurig, Milwaukee, DeWalt, Makita, Snap-on, JBL, Harman Kardon, Bang & Olufsen,
+Hot Wheels, Barbie, Peppa Pig, Paw Patrol, Squishmallows, Hello Kitty, Sanrio, NFL, NBA, MLB, NHL,
+replica, knockoff, counterfeit, inspired by, dupe, 1:1 copy, aaa quality, unbranded designer, fake
+""".replace("\n", " ").split(",") if b.strip()}
