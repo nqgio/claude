@@ -137,9 +137,10 @@ def _details(soup: BeautifulSoup) -> dict[str, str]:
     out: dict[str, str] = {}
     for row in soup.select("#productOverview_feature_div tr, #productDetails_techSpec_section_1 tr, "
                            "#productDetails_detailBullets_sections1 tr, #technicalSpecifications_section_1 tr"):
-        k, v = row.select_one("th, td:nth-of-type(1)"), row.select_one("td:nth-of-type(2), td")
-        if k and v and k is not v:
-            key, val = _clean(k.get_text()).rstrip(":"), _clean(v.get_text())
+        # label cell + value cell: <th>Label</th><td>Value</td> or <td>Label</td><td>Value</td>
+        cells = row.find_all(["th", "td"], recursive=False)
+        if len(cells) >= 2:
+            key, val = _clean(cells[0].get_text()).rstrip(":").strip(), _clean(cells[1].get_text())
             if key and val and key not in out:
                 out[key] = val
     for li in soup.select("#detailBullets_feature_div li"):

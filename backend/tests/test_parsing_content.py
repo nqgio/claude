@@ -134,3 +134,43 @@ def test_required_dimensions_filled_from_amazon_product_dimensions():
     assert aspects["Item Length"] == ["15 in"] and aspects["Item Width"] == ["3 in"]
     assert aspects["Material"] == ["Bamboo"]
     assert missing == ["Blade Material"]
+
+
+def test_dimensions_read_under_any_amazon_label():
+    from app.services.content import parse_dimensions
+
+    d = parse_dimensions({"Item Dimensions D x W x H": '16.73"D x 13.11"W x 7.28"H'})
+    assert d["Item Length"] == "16.73 in" and d["Item Width"] == "13.11 in" and d["Item Height"] == "7.28 in"
+    both = parse_dimensions({"Package Dimensions": "20 x 15 x 9 inches; 3 Pounds", "Item Dimensions L x W x H": "16 x 12 x 7 inches"})
+    assert both["Item Length"] == "16 in"  # the item's own size beats the shipping box
+
+
+def test_product_overview_table_is_read():
+    from bs4 import BeautifulSoup
+
+    from app.providers.amazon_parser import _details
+
+    html = """<div id="productOverview_feature_div"><table>
+      <tr><td class="a-span3"><span class="a-text-bold">Material</span></td><td class="a-span9"><span>Reinforced PP Plastic</span></td></tr>
+      <tr><td><span>Product Dimensions</span></td><td><span>16.73&quot;D x 13.11&quot;W x 7.28&quot;H</span></td></tr>
+      <tr><td><span>Item Weight</span></td><td><span>8.3 pounds</span></td></tr></table></div>"""
+    d = _details(BeautifulSoup(html, "lxml"))
+    assert d == {"Material": "Reinforced PP Plastic", "Product Dimensions": '16.73"D x 13.11"W x 7.28"H', "Item Weight": "8.3 pounds"}
+
+
+def test_old_cached_product_data_is_refetched_after_reader_fix(sample_source, monkeypatch):
+    from app import settings_store as st
+    from app.providers import get_provider
+    from app.services import products
+
+    products.fetch("B0SAMPLE01")
+    reads = []
+    real = get_provider().get_product
+    monkeypatch.setattr(get_provider(), "get_product", lambda a: reads.append(a) or real(a))
+    products.fetch("B0SAMPLE01", max_age_hours=6)
+    assert reads == []                                  # fresh cache is reused
+    st.set_internal("product_parser_version", 1)
+    assert products.refresh_cache_if_parser_changed() == 1
+    products.fetch("B0SAMPLE01", max_age_hours=6)
+    assert reads == ["B0SAMPLE01"]                      # data read by the old reader is fetched again
+    assert products.refresh_cache_if_parser_changed() == 0

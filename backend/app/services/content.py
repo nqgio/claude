@@ -170,17 +170,21 @@ def _clip(v: str) -> str:
 _UNITS = {"in": "in", "inch": "in", "inches": "in", '"': "in", "cm": "cm", "centimeters": "cm", "mm": "mm",
           "millimeters": "mm", "ft": "ft", "feet": "ft", "m": "m", "meters": "m"}
 _NUM = r"(\d+(?:\.\d+)?)"
-_DIM_KEYS = ("Product Dimensions", "Item Dimensions L x W x H", "Item Dimensions  L x W x H", "Item Dimensions",
-             "Dimensions", "Size", "Package Dimensions")
 
 
 def parse_dimensions(details: dict) -> dict[str, str]:
     """'10"L x 5"W x 3"H', '12 x 8 x 4 inches', '30 x 20 x 10 cm; 1.2 Pounds' → {"Item Length": "10 in", ...}."""
     out: dict[str, str] = {}
-    for key in _DIM_KEYS:
-        raw = next((v for k, v in details.items() if k.strip().lower() == key.lower() and v), None)
-        if not raw:
-            continue
+
+    def rank(k: str) -> int:  # the product's own size first, the shipping box last
+        k = k.lower()
+        return 0 if "product" in k else 1 if "item" in k else 3 if "package" in k or "box" in k else 2
+
+    # Any "…Dimensions…" line, whatever Amazon calls it ("Item Dimensions D x W x H", "Product Dimensions"…)
+    keys = sorted((k for k, v in details.items() if v and ("dimension" in k.lower() or k.strip().lower() == "size")),
+                  key=rank)
+    for key in keys:
+        raw = details[key]
         text = raw.replace("″", '"').replace("”", '"')
         dims = text.split(";")[0]
         unit_m = re.search(r'(inches|inch|in\b|"|centimeters|cm\b|millimeters|mm\b|feet|ft\b|meters|m\b)', dims, re.I)

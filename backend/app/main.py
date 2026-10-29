@@ -23,6 +23,9 @@ async def lifespan(app: FastAPI):
     from .services import accounts
 
     accounts.ensure_legacy_account()
+    from .services import products
+
+    products.refresh_cache_if_parser_changed()
     n = blocklist.seed_if_empty()
     if n:
         activity.info("blocklist", f"Seeded blocklist with {n} starter brands/keywords")

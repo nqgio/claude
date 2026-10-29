@@ -511,6 +511,12 @@ def retry_item(item_id: int) -> dict:
         item.queue_date = local_now().date()
         asin = item.asin
     activity.info("queued", f"Trying {asin} again (from dashboard)", asin=asin)
+    try:
+        products.fetch(asin, max_age_hours=0)  # re-read the Amazon page instead of reusing saved details
+    except (SourceBlocked, SourcePaused):
+        raise
+    except ProviderError:
+        pass  # post_item reports the problem
     return post_item(item_id)
 
 

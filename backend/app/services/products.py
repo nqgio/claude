@@ -20,6 +20,22 @@ def _to_data(p: Product) -> ProductData:
                        delivery_days=p.delivery_days)
 
 
+# Bump when the Amazon page reader changes how it reads pages: cached product data from the old
+# reader is then fetched again instead of being reused.
+PARSER_VERSION = 2
+
+
+def refresh_cache_if_parser_changed() -> int:
+    if (st.get("product_parser_version") or 1) >= PARSER_VERSION:
+        return 0
+    from datetime import datetime
+
+    with session_scope() as s:
+        n = s.query(Product).update({Product.fetched_at: datetime(2000, 1, 1)})
+    st.set_internal("product_parser_version", PARSER_VERSION)
+    return n
+
+
 def cached(asin: str) -> ProductData | None:
     with session_scope() as s:
         p = s.get(Product, asin)
