@@ -471,19 +471,20 @@ def post_item(item_id: int) -> dict:
         item.status = "posting"
         item.scheduled_at = min(item.scheduled_at or utcnow(), utcnow())  # "Post now" items get a start time too
         asin, force = item.asin, bool((item.preview or {}).get("force"))
+        allow_bl = bool((item.preview or {}).get("ignore_blocklist"))
     if asin in active_asins():  # last check: never list the same product twice
         _finish(item_id, "skipped", "already listed on eBay")
         activity.info("skipped", f"Not listing {asin}: it's already listed", asin=asin)
         return {"ok": False, "message": "already listed on eBay"}
     try:
         p, _ = products.fetch(asin)
-        ev = evaluate(p, apply_filters=not force)
+        ev = evaluate(p, apply_filters=not force, ignore_blocklist=allow_bl)
         if not ev["ok"]:
             _finish(item_id, "skipped", "; ".join(ev["reasons"]))
             activity.info("skipped", f"Not listing {asin} at post time: {'; '.join(ev['reasons'])}", asin=asin)
             return {"ok": False, "message": "; ".join(ev["reasons"])}
         content = build_listing_content(p, with_category=_ebay_available())
-        listing_id = _create_listing(p, ev["breakdown"], content)
+        listing_id = _create_listing(p, ev["breakdown"], content, blocklist_ok=allow_bl)
         _finish(item_id, "posted", "", listing_id)
         return {"ok": True, "listing_id": listing_id}
     except (SourceBlocked, SourcePaused) as exc:
@@ -496,6 +497,23 @@ def post_item(item_id: int) -> dict:
         _finish(item_id, "failed", str(exc)[:1000])
         activity.error("listed", f"Failed to list {asin}: {exc}", asin=asin)
         return {"ok": False, "message": str(exc)}
+
+
+def post_anyway(item_id: int) -> dict:
+    """You checked a blocklist match yourself (e.g. a brand word used in a way that's fine): post this one
+    item ignoring the blocklist. Every other check (price, stock, profit, already-listed) still applies."""
+    with session_scope() as s:
+        item = s.get(QueueItem, item_id)
+        if item is None:
+            raise KeyError(item_id)
+        if item.status in ("posting", "posted"):
+            raise ValueError(f"item is {item.status}")
+        item.preview = {**(item.preview or {}), "ignore_blocklist": True}
+        if item.status in ("queued", "scheduled"):
+            item.status = "skipped"  # so retry_item takes it
+        asin = item.asin
+    activity.warning("queued", f"Posting {asin} anyway: blocklist overridden by you for this item", asin=asin)
+    return retry_item(item_id)
 
 
 def retry_item(item_id: int) -> dict:
@@ -533,7 +551,7 @@ def _finish(item_id: int, status: str, message: str, listing_id: int | None = No
             item.listing_id = listing_id
 
 
-def _create_listing(p, b: dict, c: dict) -> int:
+def _create_listing(p, b: dict, c: dict, blocklist_ok: bool = False) -> int:
     s_all = st.all_settings(include_hidden=True)
     dry = bool(s_all["dry_run"])
     env = s_all["ebay_environment"]
@@ -544,7 +562,7 @@ def _create_listing(p, b: dict, c: dict) -> int:
                ebay_category_id=c["category_id"], ebay_category_name=c["category_name"], price=b["ebay_price"],
                quantity=qty, status="active", amazon_price_at_listing=b["amazon_price"], cost_at_listing=b["amazon_cost"],
                breakdown=b, current_breakdown=b, current_amazon_price=b["amazon_price"], current_in_stock=p.in_stock,
-               expected_profit=b["profit"], last_refreshed=utcnow())
+               expected_profit=b["profit"], last_refreshed=utcnow(), blocklist_ok=blocklist_ok)
     if c["missing_required_aspects"]:
         raise ListingFailed(_missing_msg(c["missing_required_aspects"]))
     if dry:
@@ -618,7 +636,7 @@ def _create_listing(p, b: dict, c: dict) -> int:
     return lid
 
 
-def manual_add(asin: str, force: bool = False) -> dict:
+def manual_add(asin: str, force: bool = False, ignore_blocklist: bool = False) -> dict:
     asin = asin.strip().upper()
     if len(asin) != 10 or not asin.isalnum():
         return {"ok": False, "message": "ASIN must be 10 letters/digits"}
@@ -628,11 +646,15 @@ def manual_add(asin: str, force: bool = False) -> dict:
         p, _ = products.fetch(asin, max_age_hours=1)
     except ProviderError as exc:
         return {"ok": False, "message": str(exc)}
-    ev = evaluate(p, apply_filters=not force)
+    ev = evaluate(p, apply_filters=not force, ignore_blocklist=ignore_blocklist)
     if not ev["ok"]:
         activity.info("skipped", f"Manual add {asin} rejected: {'; '.join(ev['reasons'])}", asin=asin)
         return {"ok": False, "message": "; ".join(ev["reasons"]), "breakdown": ev["breakdown"]}
     qid = add_candidate(p, ev, "manual", force=force)
+    if ignore_blocklist:
+        with session_scope() as s:
+            q = s.get(QueueItem, qid)
+            q.preview = {**(q.preview or {}), "ignore_blocklist": True}
     activity.info("queued", f"Manually queued {asin} '{p.title[:60]}'", asin=asin)
     schedule_today()
     return {"ok": True, "queue_id": qid, "breakdown": ev["breakdown"]}

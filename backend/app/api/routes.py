@@ -393,17 +393,18 @@ def get_queue(day: str | None = None):
 class AddAsin(BaseModel):
     asin: str
     force: bool = False
+    ignore_blocklist: bool = False
 
 
 @router.post("/queue")
 def add_to_queue(body: AddAsin):
-    scheduler.run_task(f"Add ASIN {body.asin}", _manual_add, body.asin, body.force)
+    scheduler.run_task(f"Add ASIN {body.asin}", _manual_add, body.asin, body.force, body.ignore_blocklist)
     return {"ok": True, "message": f"Checking {body.asin.upper()} on Amazon — it will appear in the queue (or the "
                                    "activity log will say why not)."}
 
 
-def _manual_add(asin, force):
-    res = queue.manual_add(asin, force)
+def _manual_add(asin, force, ignore_blocklist=False):
+    res = queue.manual_add(asin, force, ignore_blocklist)
     if not res["ok"]:
         activity.warning("queued", f"Could not add {asin.upper()}: {res['message']}", asin=asin.upper())
 
@@ -434,6 +435,18 @@ def retry_queue_item(qid: int):
             raise HTTPException(400, f"item is {item.status}, nothing to retry")
     scheduler.run_task(f"Retry queue item #{qid}", queue.retry_item, qid)
     return {"ok": True, "message": "Trying again — the result shows here in a few seconds."}
+
+
+@router.post("/queue/{qid}/post-anyway")
+def post_anyway(qid: int):
+    with session_scope() as s:
+        item = s.get(QueueItem, qid)
+        if not item:
+            raise HTTPException(404, "not found")
+        if item.status in ("posting", "posted"):
+            raise HTTPException(400, f"item is {item.status}")
+    scheduler.run_task(f"Post queue item #{qid} anyway", queue.post_anyway, qid)
+    return {"ok": True, "message": "Posting it, ignoring the blocklist for this item only. The result shows here shortly."}
 
 
 @router.post("/queue/stop")

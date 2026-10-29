@@ -45,14 +45,17 @@ def product_filter_reasons(p: ProductData) -> list[str]:
     return out
 
 
-def evaluate(p: ProductData, apply_filters: bool = True, blocklist: Blocklist | None = None) -> dict:
+def evaluate(p: ProductData, apply_filters: bool = True, blocklist: Blocklist | None = None,
+             ignore_blocklist: bool = False) -> dict:
     """Always enforces stock, blocklist and profit floor; `apply_filters=False` (manual add with
     'force') skips only the search filters (price range, rating, reviews, Prime, shipping days)."""
     reasons = product_filter_reasons(p) if apply_filters else []
     if not apply_filters and not p.in_stock:
         reasons.append("not in stock")
-    bl = blocklist or Blocklist.load()
-    match = bl.check(p.brand, p.title, " ".join(p.features) + " " + p.description)
+    match = None
+    if not ignore_blocklist:  # you checked this one yourself and chose "Post anyway"
+        bl = blocklist or Blocklist.load()
+        match = bl.check(p.brand, p.title, " ".join(p.features) + " " + p.description)
     if match:
         reasons.append(match.reason())
     breakdown = None

@@ -103,6 +103,7 @@ class Listing(Base):
     status: Mapped[str] = mapped_column(String(12), default="active", index=True)
     status_reason: Mapped[str] = mapped_column(String(200), default="")
     flagged: Mapped[bool] = mapped_column(Boolean, default=False)
+    blocklist_ok: Mapped[bool] = mapped_column(Boolean, default=False)  # you approved it despite a blocklist match
     flag_reason: Mapped[str] = mapped_column(String(300), default="")
     amazon_price_at_listing: Mapped[float] = mapped_column(Float)
     cost_at_listing: Mapped[float] = mapped_column(Float)  # incl. Amazon sales tax

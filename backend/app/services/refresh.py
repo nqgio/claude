@@ -195,7 +195,8 @@ def scan_blocklist(action: str | None = None) -> dict:
     bl = Blocklist.load()
     hits = []
     with session_scope() as s:
-        rows = [(l.id, l.asin, l.title, l.description_html) for l in s.query(Listing).filter(Listing.status != "ended")]
+        rows = [(l.id, l.asin, l.title, l.description_html) for l in s.query(Listing).filter(
+            Listing.status != "ended", Listing.blocklist_ok.is_(False))]  # skip ones you approved with "Post anyway"
     for lid, asin, title, desc in rows:
         cached = products.cached(asin)
         brand = cached.brand if cached else ""

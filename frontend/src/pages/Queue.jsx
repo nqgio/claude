@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleStop, ChevronLeft, ChevronRight, Clock, ExternalLink, Eye, ListOrdered, Loader2, Plus, RotateCw, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleStop, ChevronLeft, ChevronRight, Clock, ExternalLink, Eye, ListOrdered, Loader2, Plus, RotateCw, Send, ShieldOff, Sparkles, Trash2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../api";
@@ -21,6 +21,7 @@ export default function Queue() {
   const build = data?.build || {};
   const [asin, setAsin] = useState("");
   const [force, setForce] = useState(false);
+  const [allowBl, setAllowBl] = useState(false);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
   const toast = useToast();
@@ -66,7 +67,13 @@ export default function Queue() {
         <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" kind="ghost" icon={Eye} onClick={() => setPreview(r)}>Preview</Button>
           {r.listing_id && <Button size="sm" kind="ghost" icon={ExternalLink} onClick={() => nav(`/listings/${r.listing_id}`)}>Listing</Button>}
-          {["failed", "skipped"].includes(r.status) && (
+          {["failed", "skipped"].includes(r.status) && /blocklisted/i.test(r.message || "") ? (
+            <ActionButton size="sm" icon={ShieldOff}
+              confirm={`Post this one anyway, ignoring the blocklist?\n\n${r.message}\n\nOnly do this if you've checked the listing is fine (e.g. the brand word is only used to describe the item). Every other check still applies.`}
+              action={() => api.post(`/queue/${r.id}/post-anyway`)} onDone={() => setTimeout(reload, 4000)}>
+              Post anyway
+            </ActionButton>
+          ) : ["failed", "skipped"].includes(r.status) && (
             <ActionButton size="sm" icon={RotateCw} action={() => api.post(`/queue/${r.id}/retry`)} onDone={() => setTimeout(reload, 4000)}>
               Try again
             </ActionButton>
@@ -127,7 +134,7 @@ export default function Queue() {
             e.preventDefault();
             setBusy(true);
             try {
-              const r = await api.post("/queue", { asin, force });
+              const r = await api.post("/queue", { asin, force, ignore_blocklist: allowBl });
               toast(r.message, "info");
               setAsin("");
               setTimeout(reload, 4000);
@@ -144,6 +151,9 @@ export default function Queue() {
             <Button kind="primary" type="submit" icon={Plus} busy={busy} disabled={!asin}>Add</Button>
             <label className="flex items-center gap-2 text-[13px] text-ink-2" title="Skips price/rating/review/Prime/shipping filters. Stock, blocklist and profit floor still apply.">
               <Switch checked={force} onChange={setForce} label="Ignore search filters" /> Ignore search filters
+            </label>
+            <label className="flex items-center gap-2 text-[13px] text-ink-2" title="For a product you've checked yourself: posts it even if a blocklist word matches. Only this product; the blocklist stays on for everything else.">
+              <Switch checked={allowBl} onChange={setAllowBl} label="Ignore blocklist" /> Ignore blocklist
             </label>
           </div>
         </form>

@@ -797,3 +797,32 @@ def test_try_again_on_a_failed_post(sample_source, calls, monkeypatch):
         assert q.status == "posted" and q.listing_id
     with pytest.raises(ValueError):
         queue.retry_item(qid)  # only failed/skipped items can be retried
+
+
+def test_post_anyway_overrides_the_blocklist_for_one_item(sample_source, calls):
+    from app import blocklist
+    from app.services import refresh as rf
+
+    _window_all_day()
+    st.update({"listings_per_day": 1, "queue_backup_factor": 1})
+    queue.build_queue("test")
+    with session_scope() as s:
+        q = s.query(QueueItem).filter_by(status="scheduled").one()
+        qid, title = q.id, q.title
+    word = title.split()[0]
+    blocklist.add_terms([(word, "brand")])                      # e.g. "Crayola" gets added after it was queued
+    assert not queue.post_item(qid)["ok"]
+    with session_scope() as s:
+        assert s.get(QueueItem, qid).status == "skipped" and "blocklisted" in s.get(QueueItem, qid).message
+    assert queue.post_anyway(qid)["ok"]                         # you checked it: post this one anyway
+    with session_scope() as s:
+        lid = s.get(QueueItem, qid).listing_id
+        assert s.get(Listing, lid).blocklist_ok
+    assert rf.scan_blocklist("flag")["matches"] == []           # the later scan leaves your approved listing alone
+    from app.services import products
+    from app.services.evaluate import evaluate
+
+    with session_scope() as s:
+        asin = s.get(QueueItem, qid).asin
+    p, _ = products.fetch(asin)
+    assert evaluate(p)["blocklisted"]                            # the word itself is still blocked everywhere else
