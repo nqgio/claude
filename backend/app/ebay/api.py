@@ -59,6 +59,16 @@ def get_offers_for_sku(sku: str) -> list[dict]:
         raise
 
 
+def get_offer(offer_id: str) -> dict | None:
+    """The offer, including listing.listingStatus (ACTIVE, OUT_OF_STOCK, ENDED, EBAY_ENDED…); None if it's gone."""
+    try:
+        return get_json(f"{INV}/offer/{_q(offer_id)}")
+    except EbayError as exc:
+        if exc.status == 404:
+            return None
+        raise
+
+
 def create_offer(offer: dict) -> str:
     return request("POST", f"{INV}/offer", json=offer).json()["offerId"]
 

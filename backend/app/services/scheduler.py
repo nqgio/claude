@@ -22,11 +22,12 @@ JOB_LABELS = {
     "discovery": "Build today's queue", "posting_tick": "Post due listings", "refresh": "Price & stock refresh",
     "orders": "Sync eBay orders", "fees": "Sync actual fees (Finances API)", "traffic": "Sync views & watchers",
     "tracking": "Check Amazon tracking", "returns": "Sync returns", "maintenance": "Housekeeping",
+    "listing_status": "Check which listings ended on eBay",
 }
 
 
 def _job_fn(name: str):
-    from . import orders, queue, refresh
+    from . import listing_ops, orders, queue, refresh
 
     return {
         "discovery": lambda: queue.build_queue("schedule"),
@@ -38,6 +39,7 @@ def _job_fn(name: str):
         "tracking": orders.check_tracking,
         "returns": orders.sync_returns,
         "maintenance": _maintenance,
+        "listing_status": listing_ops.sync_status,
     }[name]
 
 
@@ -92,6 +94,7 @@ def configure() -> None:
         "traffic": IntervalTrigger(hours=6),
         "tracking": IntervalTrigger(hours=int(s["tracking_check_hours"])),
         "returns": IntervalTrigger(hours=3),
+        "listing_status": IntervalTrigger(hours=1),
         "maintenance": CronTrigger(hour=4, minute=17),
     }
     rh, rm = _hm(s["refresh_time"])

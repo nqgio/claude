@@ -159,6 +159,10 @@ Upgrading from an earlier version? Your existing Amazon login is kept automatica
 | **Amazon scraper** | Max pages per hour, random delay range, cache time, cooldown after a CAPTCHA, hidden vs visible browser |
 | **Blocklist** | Comes with about 670 well-known brands (VeRO-prone and easy-to-compare names). **Brand** blocks the name anywhere (brand, title, description, so "for KitchenAid mixer" is caught). **Exact brand** is for names that are everyday words (Apple, Shark, Ring): only blocked when it's the product's real brand, so an apple slicer still gets through. **Keyword** blocks a phrase anywhere. Add/remove/import CSV (`term` or `term,kind` per line, kind = brand / exact / keyword); scan active listings and flag or end matches. App updates add new starter brands automatically but never re-add ones you removed. |
 
+### Ending listings on eBay yourself
+
+You can end a listing in eBay's Seller Hub; there's no need to also end it in the app. Every hour, the app asks eBay for the status of each live listing. Anything ended on eBay is marked **Ended** on the Listings page. **Check eBay now** on the Listings page runs the check right away. If **eBay** ended a listing (for example, a brand complaint), it's also flagged so you can see why in Seller Hub. Listings at quantity 0 aren't treated as ended.
+
 ### How the nightly refresh works
 
 At the time you set (or on your chosen interval), the app re-opens every active listing's Amazon page (reusing data fetched within the cache window):

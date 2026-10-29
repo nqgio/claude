@@ -705,3 +705,31 @@ def test_never_lists_the_same_product_twice(live):
     with session_scope() as s:
         assert s.query(Listing).count() == 1
         assert s.query(QueueItem).filter_by(asin=asin, status="queued").count() == 0
+
+
+def test_listings_ended_on_ebay_are_marked_ended_here(live, monkeypatch):
+    from app.ebay import api as ebay_api
+    from app.services import listing_ops
+
+    queue.build_queue("test")
+    _post_all_scheduled()
+    with session_scope() as s:
+        lid = s.query(Listing).one().id
+    status = {"OFFER1": {"status": "PUBLISHED", "listing": {"listingId": "110000000001", "listingStatus": "ACTIVE"}}}
+    monkeypatch.setattr(ebay_api, "get_offer", lambda oid: status.get(oid))
+    assert listing_ops.sync_status() == {"checked": 1, "ended": 0}      # still live: untouched
+    status["OFFER1"]["listing"]["listingStatus"] = "OUT_OF_STOCK"
+    assert listing_ops.sync_status()["ended"] == 0                       # quantity 0 isn't ended
+    status["OFFER1"]["listing"]["listingStatus"] = "ENDED"               # you ended it in Seller Hub
+    assert listing_ops.sync_status() == {"checked": 1, "ended": 1}
+    with session_scope() as s:
+        l = s.get(Listing, lid)
+        assert l.status == "ended" and l.status_reason == "ended on eBay" and l.ended_at and not l.flagged
+    assert listing_ops.sync_status() == {"checked": 0, "ended": 0}      # ended ones aren't checked again
+    with session_scope() as s:                                           # eBay ended one (e.g. a VeRO takedown)
+        s.get(Listing, lid).status = "active"
+    status["OFFER1"]["listing"]["listingStatus"] = "EBAY_ENDED"
+    listing_ops.sync_status()
+    with session_scope() as s:
+        l = s.get(Listing, lid)
+        assert l.status == "ended" and l.flagged and "ended by eBay" in l.flag_reason

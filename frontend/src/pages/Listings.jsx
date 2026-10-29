@@ -1,4 +1,4 @@
-import { Flag, Package, RefreshCw, Search } from "lucide-react";
+import { CircleCheck, Flag, Package, RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
@@ -9,7 +9,7 @@ export default function Listings() {
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [showDry, setShowDry] = useState(true);
-  const [rows] = useLoad(
+  const [rows, reload] = useLoad(
     () => api.get(`/listings?include_dry_run=${showDry}${status ? `&status=${status}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`),
     [status, q, showDry],
     60000
@@ -53,9 +53,15 @@ export default function Listings() {
         title="Listings"
         description="Everything the app has listed, with live Amazon prices and results."
         actions={
-          <ActionButton kind="primary" icon={RefreshCw} action={() => api.post("/refresh/run")} success="Refresh started. Prices update as each listing is checked.">
-            Refresh now
-          </ActionButton>
+          <>
+            <ActionButton icon={CircleCheck} action={() => api.post("/jobs/listing_status/run")} onDone={() => setTimeout(reload, 5000)}
+              success="Checking eBay: listings you ended there will show as Ended here. (This also runs every hour.)">
+              Check eBay now
+            </ActionButton>
+            <ActionButton kind="primary" icon={RefreshCw} action={() => api.post("/refresh/run")} success="Refresh started. Prices update as each listing is checked.">
+              Refresh now
+            </ActionButton>
+          </>
         }
       />
       <Card padded={false}>

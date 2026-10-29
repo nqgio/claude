@@ -81,6 +81,46 @@ def end_listing(listing_id: int, reason: str) -> bool:
         return True
 
 
+ENDED_STATUSES = {"ENDED": "ended on eBay", "EBAY_ENDED": "ended by eBay (check Seller Hub for why)"}
+
+
+def sync_status() -> dict:
+    """Notice listings you ended yourself on eBay (or eBay ended) and mark them ended here too. Read-only on eBay."""
+    from ..ebay.client import EbayError, EbayNotConnected
+
+    env = st.get("ebay_environment")
+    with session_scope() as s:
+        rows = [(l.id, l.offer_id, l.title) for l in s.query(Listing).filter(
+            Listing.environment == env, Listing.dry_run.is_(False), Listing.offer_id.isnot(None), Listing.status != "ended")]
+    ended = 0
+    for lid, offer_id, title in rows:
+        try:
+            offer = api.get_offer(offer_id)
+        except EbayNotConnected as exc:
+            return {"skipped": str(exc)}
+        except EbayError as exc:
+            activity.warning("ebay", f"Could not check eBay status of '{title[:60]}': {exc}", listing_id=lid)
+            continue
+        if offer is None:
+            reason = "removed on eBay"
+        else:
+            listing_status = ((offer.get("listing") or {}).get("listingStatus") or "").upper()
+            reason = ENDED_STATUSES.get(listing_status)
+            if reason is None and offer.get("status") == "UNPUBLISHED":
+                reason = "ended on eBay"
+        if not reason:
+            continue
+        with session_scope() as s:
+            l = s.get(Listing, lid)
+            l.status, l.status_reason, l.ended_at = "ended", reason, utcnow()
+            if reason.startswith("ended by eBay"):
+                l.flagged, l.flag_reason = True, reason
+        ended += 1
+        (activity.warning if reason.startswith("ended by eBay") else activity.info)(
+            "ended", f"'{title[:60]}' was {reason} — marked ended here too", listing_id=lid)
+    return {"checked": len(rows), "ended": ended}
+
+
 def flag(listing_id: int, reason: str) -> None:
     with session_scope() as s:
         l = s.get(Listing, listing_id)
