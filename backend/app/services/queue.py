@@ -498,6 +498,22 @@ def post_item(item_id: int) -> dict:
         return {"ok": False, "message": str(exc)}
 
 
+def retry_item(item_id: int) -> dict:
+    """Try a failed (or skipped) post again right now. Everything is re-checked: Amazon price and stock,
+    profit, blocklist, already-listed, and the eBay item specifics are rebuilt."""
+    with session_scope() as s:
+        item = s.get(QueueItem, item_id)
+        if item is None:
+            raise KeyError(item_id)
+        if item.status not in ("failed", "skipped"):
+            raise ValueError(f"item is {item.status}, nothing to retry")
+        item.status, item.message, item.scheduled_at = "scheduled", "trying again…", utcnow()
+        item.queue_date = local_now().date()
+        asin = item.asin
+    activity.info("queued", f"Trying {asin} again (from dashboard)", asin=asin)
+    return post_item(item_id)
+
+
 def _missing_msg(missing: list[str]) -> str:
     return (f"eBay requires {', '.join(missing)} for this category and the Amazon page doesn't show "
             f"{'it' if len(missing) == 1 else 'them'}")

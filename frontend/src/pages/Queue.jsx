@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleStop, ChevronLeft, ChevronRight, Clock, ExternalLink, Eye, ListOrdered, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleStop, ChevronLeft, ChevronRight, Clock, ExternalLink, Eye, ListOrdered, Loader2, Plus, RotateCw, Send, Sparkles, Trash2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../api";
@@ -66,6 +66,11 @@ export default function Queue() {
         <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" kind="ghost" icon={Eye} onClick={() => setPreview(r)}>Preview</Button>
           {r.listing_id && <Button size="sm" kind="ghost" icon={ExternalLink} onClick={() => nav(`/listings/${r.listing_id}`)}>Listing</Button>}
+          {["failed", "skipped"].includes(r.status) && (
+            <ActionButton size="sm" icon={RotateCw} action={() => api.post(`/queue/${r.id}/retry`)} onDone={() => setTimeout(reload, 4000)}>
+              Try again
+            </ActionButton>
+          )}
           {["queued", "scheduled"].includes(r.status) && (
             <>
               <ActionButton size="sm" icon={Send} action={() => api.post(`/queue/${r.id}/post-now`)} onDone={() => setTimeout(reload, 3000)} success="Posting now">

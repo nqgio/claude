@@ -777,3 +777,23 @@ def test_products_ebay_cant_accept_are_skipped_at_queue_time(live, monkeypatch):
     with session_scope() as s:
         skipped = s.query(QueueItem).filter_by(status="skipped").all()
         assert skipped and all("eBay requires Blade Material" in q.message for q in skipped)
+
+
+def test_try_again_on_a_failed_post(sample_source, calls, monkeypatch):
+    _window_all_day()
+    st.update({"listings_per_day": 1, "queue_backup_factor": 1})
+    queue.build_queue("test")
+    with session_scope() as s:
+        qid = s.query(QueueItem).filter_by(status="scheduled").one().id
+    real = queue._create_listing
+    monkeypatch.setattr(queue, "_create_listing", lambda *a: (_ for _ in ()).throw(RuntimeError("eBay hiccup")))
+    assert not queue.post_item(qid)["ok"]
+    with session_scope() as s:
+        assert s.get(QueueItem, qid).status == "failed"
+    monkeypatch.setattr(queue, "_create_listing", real)
+    assert queue.retry_item(qid)["ok"]
+    with session_scope() as s:
+        q = s.get(QueueItem, qid)
+        assert q.status == "posted" and q.listing_id
+    with pytest.raises(ValueError):
+        queue.retry_item(qid)  # only failed/skipped items can be retried

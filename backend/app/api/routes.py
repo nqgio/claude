@@ -424,6 +424,18 @@ def post_now(qid: int):
     return {"ok": True}
 
 
+@router.post("/queue/{qid}/retry")
+def retry_queue_item(qid: int):
+    with session_scope() as s:
+        item = s.get(QueueItem, qid)
+        if not item:
+            raise HTTPException(404, "not found")
+        if item.status not in ("failed", "skipped"):
+            raise HTTPException(400, f"item is {item.status}, nothing to retry")
+    scheduler.run_task(f"Retry queue item #{qid}", queue.retry_item, qid)
+    return {"ok": True, "message": "Trying again — the result shows here in a few seconds."}
+
+
 @router.post("/queue/stop")
 def stop_queue_build():
     if queue.stop_build():
