@@ -733,3 +733,34 @@ def test_listings_ended_on_ebay_are_marked_ended_here(live, monkeypatch):
     with session_scope() as s:
         l = s.get(Listing, lid)
         assert l.status == "ended" and l.flagged and "ended by eBay" in l.flag_reason
+
+
+def test_removing_a_scheduled_item_shifts_the_schedule_up(sample_source, monkeypatch):
+    from datetime import timedelta
+
+    from app.models import utcnow
+
+    _window_all_day()
+    st.update({"listings_per_day": 3, "queue_backup_factor": 2})
+    queue.build_queue("test")
+    now = utcnow()
+    with session_scope() as s:
+        sched = s.query(QueueItem).filter_by(status="scheduled").order_by(QueueItem.id).all()
+        times = [now + timedelta(hours=h) for h in (1, 2, 3)]
+        for q, t in zip(sched, times):
+            q.scheduled_at = t
+        first, second, third = [q.id for q in sched]
+    r = queue.remove_item(first)
+    assert r["shifted"] == 2 and r["backup_added"] and "moved up" in r["message"]
+    with session_scope() as s:
+        get = lambda i: s.get(QueueItem, i)  # noqa: E731
+        assert get(first).status == "removed" and get(first).scheduled_at is None
+        assert get(second).scheduled_at == times[0] and get(third).scheduled_at == times[1]
+        backup = s.query(QueueItem).filter(QueueItem.status == "scheduled", QueueItem.id.notin_([second, third])).one()
+        assert backup.scheduled_at == times[2]          # the backup takes the last slot, same spacing as before
+    r = queue.remove_item(third)                         # removing the last one: nothing to shift, backup takes it
+    assert r["shifted"] == 1 and r["backup_added"]
+    with pytest.raises(ValueError):
+        with session_scope() as s:
+            s.get(QueueItem, second).status = "posted"
+        queue.remove_item(second)

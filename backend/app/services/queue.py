@@ -326,6 +326,65 @@ def schedule_today() -> int:
     return n
 
 
+def remove_item(item_id: int) -> dict:
+    """Take an item out of the queue. If it had a posting time, the schedule shifts up: each later item moves
+    into the slot before it and the next backup gets the last slot, so posts stay evenly spread."""
+    with session_scope() as s:
+        item = s.get(QueueItem, item_id)
+        if item is None:
+            raise KeyError(item_id)
+        if item.status in ("posting", "posted"):
+            raise ValueError(f"item is {item.status}")
+        slot = item.scheduled_at if item.status == "scheduled" else None
+        item.status, item.message, item.scheduled_at = "removed", "removed from dashboard", None
+        asin, day = item.asin, item.queue_date
+        shifted = 0
+        if slot is not None and slot > utcnow():
+            later = (s.query(QueueItem).filter(QueueItem.queue_date == day, QueueItem.status == "scheduled",
+                                               QueueItem.scheduled_at > slot)
+                     .order_by(QueueItem.scheduled_at).all())
+            times = [slot] + [q.scheduled_at for q in later]
+            for q, t in zip(later, times):
+                q.scheduled_at = t
+            shifted = len(later)
+            free = times[-1]  # the last slot is now open for a backup
+        else:
+            free = None
+    activity.info("queued", f"Removed {asin} from the queue" + (f"; moved {shifted} later post(s) up" if shifted else ""),
+                  asin=asin)
+    filled = _fill_slot(free, day) if free is not None else False
+    if not filled:
+        schedule_today()
+    msg = "Removed from the queue."
+    if shifted:
+        msg += f" {shifted} later post{'s' if shifted > 1 else ''} moved up."
+    if filled:
+        msg += " A backup took the last slot."
+    return {"ok": True, "shifted": shifted, "backup_added": filled, "message": msg}
+
+
+def _fill_slot(when, day) -> bool:
+    """Give an open posting time to the next backup (same picking rules as the daily schedule)."""
+    if day != local_now().date() or int(st.get("listings_per_day")) - posted_today_count() <= 0:
+        return False
+    with session_scope() as s:
+        scheduled = s.query(QueueItem).filter(QueueItem.queue_date == day,
+                                              QueueItem.status.in_(["scheduled", "posting"])).count()
+        if posted_today_count() + scheduled >= int(st.get("listings_per_day")):
+            return False
+        queued = (s.query(QueueItem).filter(QueueItem.queue_date == day, QueueItem.status == "queued")
+                  .order_by((QueueItem.source == "manual").desc(), QueueItem.expected_profit.desc()).all())
+        used = [q.search_term for q in s.query(QueueItem).filter(
+            QueueItem.queue_date == day, QueueItem.status.in_(["scheduled", "posting", "posted"]))]
+        pick = _mix_keywords(queued, 1, used)
+        if not pick:
+            return False
+        pick[0].status, pick[0].scheduled_at = "scheduled", when
+        asin = pick[0].asin
+    activity.info("queued", f"Backup {asin} takes the open posting slot", asin=asin)
+    return True
+
+
 def _mix_keywords(queued: list, need: int, used_today: list[str]) -> list:
     """Pick `need` items, taking turns between keywords so the same kind of product isn't posted back to back.
     Manual adds go first; keywords already posted/scheduled today wait their turn; best profit first within a keyword."""

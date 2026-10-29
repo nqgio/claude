@@ -410,17 +410,12 @@ def _manual_add(asin, force):
 
 @router.delete("/queue/{qid}")
 def remove_queue_item(qid: int):
-    with session_scope() as s:
-        item = s.get(QueueItem, qid)
-        if not item:
-            raise HTTPException(404, "not found")
-        if item.status in ("posting", "posted"):
-            raise HTTPException(400, f"item is {item.status}")
-        item.status, item.message = "removed", "removed from dashboard"
-        asin = item.asin
-    activity.info("queued", f"Removed {asin} from the queue", asin=asin)
-    queue.schedule_today()
-    return {"ok": True}
+    try:
+        return queue.remove_item(qid)
+    except KeyError:
+        raise HTTPException(404, "not found")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
 
 @router.post("/queue/{qid}/post-now")

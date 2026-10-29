@@ -71,7 +71,7 @@ export default function Queue() {
               <ActionButton size="sm" icon={Send} action={() => api.post(`/queue/${r.id}/post-now`)} onDone={() => setTimeout(reload, 3000)} success="Posting now">
                 Post
               </ActionButton>
-              <ActionButton size="sm" kind="ghost" icon={Trash2} action={() => api.del(`/queue/${r.id}`)} onDone={reload} success="Removed from queue" title="Remove" />
+              <ActionButton size="sm" kind="ghost" icon={Trash2} action={() => api.del(`/queue/${r.id}`)} onDone={reload} title="Remove" />
             </>
           )}
         </div>
