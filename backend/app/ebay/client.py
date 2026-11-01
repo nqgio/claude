@@ -36,7 +36,7 @@ HOSTS = {
 
 # Requests per second per API family; eBay's daily call limits are far above what
 # this app makes, but we still pace calls and honor 429 Retry-After.
-RATE_PER_SEC = {"default": 4.0, "finances": 2.0, "analytics": 1.0, "trading": 2.0}
+RATE_PER_SEC = {"default": 4.0, "finances": 2.0, "analytics": 1.0, "trading": 2.0, "browse": 3.0, "negotiation": 1.0}
 
 
 class EbayError(Exception):

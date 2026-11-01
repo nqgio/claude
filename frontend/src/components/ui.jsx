@@ -446,7 +446,10 @@ export function Breakdown({ b }) {
       line("+ Fixed fee per order", money(b.ebay_fee_fixed_per_order)),
       line("Raw price", `$${b.raw_price.toFixed(4)}`),
       line(`Rounding · ${b.rounding_mode === "next_dollar_99" ? "next dollar .99" : "nearest .99 above"}`, `+${money(b.rounding_added)}`),
-      line("eBay price", money(b.ebay_price), { total: true, accent: true }),
+      ...(b.formula_price != null && b.formula_price !== b.ebay_price
+        ? [line("Normal price", money(b.formula_price)),
+           line(`Priced under the cheapest competitor (${money(b.competitor?.price)})`, money(b.ebay_price), { total: true, accent: true })]
+        : [line("eBay price", money(b.ebay_price), { total: true, accent: true })]),
     ],
     [
       line(`eBay fees · ${b.ebay_fee_percent}% of price + ${b.buyer_tax_estimate}% buyer tax, + fixed`, `−${money(b.ebay_fees)}`),
@@ -454,8 +457,16 @@ export function Breakdown({ b }) {
       line("Amazon cost", `−${money(b.amazon_cost)}`),
     ],
   ];
+  const comp = b.competitor;
   return (
     <div>
+      {comp !== undefined && (
+        <p className="mb-2 text-xs text-ink-3">
+          {comp ? (
+            <>Cheapest similar listing on eBay: <a href={comp.url} target="_blank" rel="noreferrer" className="font-medium text-accent-ink hover:underline">{money(comp.price)}</a> incl. shipping{comp.seller ? ` (${comp.seller})` : ""}.</>
+          ) : "No other eBay seller found for this exact product."}
+        </p>
+      )}
       <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
         {groups.map((g, gi) => (
           <div key={gi} className="px-4 py-2">

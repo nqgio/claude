@@ -15,7 +15,7 @@ from ..ebay.client import EbayError, keys as ebay_keys
 from ..models import Listing, QueueItem, utcnow
 from ..providers import get_provider
 from ..providers.base import STOP_EVENT, ProviderError, SourceBlocked, SourcePaused, Stopped, set_wait_listener
-from . import products
+from . import competition, products
 from .content import build_listing_content
 from .evaluate import evaluate, search_result_reasons
 
@@ -226,6 +226,11 @@ def _build_queue(trigger: str) -> dict:
             if not ev["ok"]:
                 activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {'; '.join(ev['reasons'])}", asin=p.asin)
                 continue
+            cp = competition.check(p, ev["breakdown"])
+            if cp["action"] == "skip":
+                activity.info("skipped", f"Skipped {p.asin} '{p.title[:60]}': {cp['reason']}", asin=p.asin)
+                continue
+            ev = {**ev, "breakdown": cp["breakdown"]}
             qid = add_candidate(p, ev, "auto", today=today, search_term=lane["label"])
             with session_scope() as s:
                 q = s.get(QueueItem, qid)
@@ -483,6 +488,12 @@ def post_item(item_id: int) -> dict:
             _finish(item_id, "skipped", "; ".join(ev["reasons"]))
             activity.info("skipped", f"Not listing {asin} at post time: {'; '.join(ev['reasons'])}", asin=asin)
             return {"ok": False, "message": "; ".join(ev["reasons"])}
+        cp = competition.check(p, ev["breakdown"])  # prices change: check competitors again right before posting
+        if cp["action"] == "skip":
+            _finish(item_id, "skipped", cp["reason"])
+            activity.info("skipped", f"Not listing {asin}: {cp['reason']}", asin=asin)
+            return {"ok": False, "message": cp["reason"]}
+        ev = {**ev, "breakdown": cp["breakdown"]}
         content = build_listing_content(p, with_category=_ebay_available())
         listing_id = _create_listing(p, ev["breakdown"], content, blocklist_ok=allow_bl)
         _finish(item_id, "posted", "", listing_id)

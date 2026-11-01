@@ -104,6 +104,7 @@ class Listing(Base):
     status_reason: Mapped[str] = mapped_column(String(200), default="")
     flagged: Mapped[bool] = mapped_column(Boolean, default=False)
     blocklist_ok: Mapped[bool] = mapped_column(Boolean, default=False)  # you approved it despite a blocklist match
+    last_offer_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # last auto-offer to watchers
     flag_reason: Mapped[str] = mapped_column(String(300), default="")
     amazon_price_at_listing: Mapped[float] = mapped_column(Float)
     cost_at_listing: Mapped[float] = mapped_column(Float)  # incl. Amazon sales tax

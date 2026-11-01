@@ -1,5 +1,5 @@
 import {
-  Ban, Bot, Calculator, KeyRound, CheckCircle2, Circle, Filter, Globe, Hand, LogIn, Monitor, Moon, Palette, Plug, RefreshCcw, Search, ShieldCheck,
+  Ban, Bot, Calculator, KeyRound, CheckCircle2, Circle, Filter, Globe, Hand, Handshake, LogIn, Monitor, Moon, Palette, Plug, RefreshCcw, Search, ShieldCheck,
   ShoppingCart, SlidersHorizontal, Store, Sun, Tag, Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +15,7 @@ const GROUPS = [
   ["filters", "Product filters", Filter, "Products must pass these to be queued."],
   ["listing", "Listing defaults", Tag, "Quantity, business policies, location, promotion and listing content."],
   ["refresh", "Price & stock refresh", RefreshCcw, "Re-checks Amazon on a schedule and updates eBay."],
+  ["selling", "Competitors & offers", Handshake, "Price against other eBay sellers, and send offers to watchers."],
   ["orders", "Orders & checkout", ShoppingCart, "Assisted or automatic Amazon purchasing and its safeguards."],
   ["amazon", "Amazon scraper", Globe, "How politely the app reads Amazon pages."],
 ];

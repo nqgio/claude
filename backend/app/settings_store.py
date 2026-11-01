@@ -124,6 +124,20 @@ SPECS: list[Spec] = [
     Spec("below_floor_action", "zero_quantity", "choice", "refresh", "When profit drops below the floor",
          choices=[("zero_quantity", "Set eBay quantity to 0"), ("end", "End the listing"), ("flag", "Just flag it")]),
 
+    # --- Competitors & offers ---------------------------------------------
+    Spec("competitor_check_enabled", True, "bool", "selling", "Check competitor prices on eBay",
+         "Before listing, and at every refresh, looks up other eBay sellers' prices for the same product (new, with "
+         "shipping). Cheaper competitor: priced at the next .99 below them if you still make your minimum profit, "
+         "otherwise skipped (live listings go to quantity 0). Nobody cheaper: your normal price."),
+    Spec("auto_offers_enabled", True, "bool", "selling", "Send offers to watchers automatically",
+         "eBay lets you send a discount to buyers watching a listing. The app checks every few hours."),
+    Spec("auto_offer_percent", 10, "int", "selling", "Offer discount (%)",
+         "Capped so the offer price still makes your minimum profit; no offer if even 5% (eBay's minimum) wouldn't.",
+         min=5, max=50),
+    Spec("auto_offer_message", "Thanks for watching! Here's a special price just for you.", "str", "selling",
+         "Offer message to the buyer"),
+    Spec("auto_offer_repeat_days", 7, "int", "selling", "Wait between offers on the same listing (days)", min=1, max=60),
+
     # --- Orders -------------------------------------------------------------
     Spec("checkout_mode", "assisted", "choice", "orders", "Checkout mode",
          choices=[("assisted", "Assisted (I buy on Amazon, app helps)"), ("auto", "Auto (app places the Amazon order)")]),

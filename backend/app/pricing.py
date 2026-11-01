@@ -139,3 +139,23 @@ def calculate(amazon_price: Any, p: PricingParams) -> dict:
         "floor_reasons": reasons,
         "params": asdict(p),
     }
+
+
+def largest_99_below(limit: Any) -> Decimal:
+    """The highest X.99 price strictly below `limit` (competitor at $54.50 → $53.99, at $53.99 → $52.99)."""
+    lim = _d(limit)
+    whole = lim.to_integral_value(rounding=ROUND_FLOOR)
+    candidate = whole + NINETY_NINE
+    return candidate if candidate < lim else candidate - 1
+
+
+def at_price(amazon_price: Any, ebay_price: Any, p: PricingParams) -> dict:
+    """The same breakdown as `calculate`, but for an eBay price chosen some other way (e.g. just under the
+    cheapest competitor). Profit and the profit floor are recalculated at that price."""
+    b = calculate(amazon_price, p)
+    prof = profit_for(ebay_price, _d(amazon_price) * (1 + _d(p.sales_tax_percent) / HUNDRED), p)
+    reasons = floor_failures(prof.pop("_profit_exact"), prof.pop("_roi_exact"), p)
+    b.update(prof)
+    b.update(formula_price=b["ebay_price"], ebay_price=money(_d(ebay_price)), passes_floor=not reasons,
+             floor_reasons=reasons)
+    return b

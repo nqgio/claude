@@ -8,6 +8,7 @@ from ..db import session_scope
 from ..models import Listing, PriceHistory, utcnow
 from ..pricing import calculate, profit_for
 from ..providers.base import ProviderError, SourceBlocked, SourcePaused
+from . import competition
 from . import listing_ops as ops
 from . import products
 from .evaluate import pricing_params
@@ -63,6 +64,12 @@ def refresh_one(lid: int, stats: dict, max_age: float | None = None) -> None:
     stats["checked"] += 1
     params = pricing_params()
     b = calculate(p.price, params) if p.price else None
+    competitor_skip = ""
+    if b and p.in_stock and b["passes_floor"]:
+        cp = competition.check(p, b)  # price just under a cheaper competitor, if that still clears your minimum
+        b = cp["breakdown"]
+        if cp["action"] == "skip":
+            competitor_skip = cp["reason"]
     with session_scope() as s:
         l = s.get(Listing, lid)
         l.current_amazon_price, l.current_in_stock, l.last_refreshed = p.price, p.in_stock, utcnow()
@@ -88,6 +95,16 @@ def refresh_one(lid: int, stats: dict, max_age: float | None = None) -> None:
                 ops.end_listing(lid, "Amazon out of stock")
             else:
                 ops.set_quantity(lid, 0, "Amazon out of stock", status="qty0")
+        return
+
+    if competitor_skip:
+        if status == "active":
+            stats["competitor_cheaper"] = stats.get("competitor_cheaper", 0) + 1
+            activity.info("price", f"'{title[:60]}': {competitor_skip}", asin=asin, listing_id=lid)
+            if not apply:
+                review(f"competitor cheaper: {competitor_skip}")
+            else:
+                ops.set_quantity(lid, 0, f"competitor cheaper: {competitor_skip}", status="qty0")
         return
 
     drop_limit = float(st.get("refresh_max_drop_percent"))
@@ -163,10 +180,16 @@ def apply_suggested_price(lid: int) -> dict:
     with session_scope() as s:
         l = s.get(Listing, lid)
         b = l.current_breakdown or {}
-        status, in_stock = l.status, l.current_in_stock
+        status, in_stock, asin = l.status, l.current_in_stock, l.asin
     if not b.get("amazon_price"):
         return {"ok": False, "message": "No refreshed price yet — press Refresh first."}
     b = calculate(b["amazon_price"], pricing_params())  # re-check with your settings as they are now
+    cached = products.cached(asin)
+    if cached and b["passes_floor"]:
+        cp = competition.check(cached, b)
+        if cp["action"] == "skip":
+            return {"ok": False, "message": "Not applied: " + cp["reason"]}
+        b = cp["breakdown"]
     if not in_stock:
         return {"ok": False, "message": "Amazon showed it out of stock at the last refresh."}
     if not b.get("passes_floor") or b.get("profit", 0) <= 0:

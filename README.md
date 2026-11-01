@@ -159,6 +159,15 @@ Upgrading from an earlier version? Your existing Amazon login is kept automatica
 | **Amazon scraper** | Max pages per hour, random delay range, cache time, cooldown after a CAPTCHA, hidden vs visible browser |
 | **Blocklist** | Comes with about 670 well-known brands (VeRO-prone and easy-to-compare names). **Brand** blocks the name anywhere (brand, title, description, so "for KitchenAid mixer" is caught). **Exact brand** is for names that are everyday words (Apple, Shark, Ring): only blocked when it's the product's real brand, so an apple slicer still gets through. **Keyword** blocks a phrase anywhere. Add/remove/import CSV (`term` or `term,kind` per line, kind = brand / exact / keyword); scan active listings and flag or end matches. App updates add new starter brands automatically but never re-add ones you removed. |
 
+### Competitor prices and offers
+
+**Competitor price check** (Settings → Competitors & offers). Before a product is queued, again right before it posts, and at every refresh, the app uses eBay's official search to find the cheapest **new** listing of the **same product** (price plus shipping). It counts as the same product only if the pack size matches, the brand is in the title (or the title is a very close match), most of the title's words match, and it isn't a cheap part or accessory. Your own listings never count.
+- Nobody cheaper → your normal price.
+- Someone cheaper, but you can go to the next .99 below them and still make your minimum profit → that price. The price breakdown shows the competitor and links to their listing.
+- Someone cheaper than you can profitably go → the product is skipped (a live listing goes to quantity 0, and comes back if that competitor goes away).
+
+**Auto offers to watchers.** Every 4 hours the app asks eBay which listings have watchers who can get an offer, and sends them your discount (10% by default). The discount is lowered as needed so you still make your minimum profit. If even eBay's minimum 5% wouldn't, no offer is sent. Each listing gets at most one offer per week by default.
+
 ### Ending listings on eBay yourself
 
 You can end a listing in eBay's Seller Hub; there's no need to also end it in the app. Every hour, the app asks eBay for the status of each live listing. Anything ended on eBay is marked **Ended** on the Listings page. **Check eBay now** on the Listings page runs the check right away. If **eBay** ended a listing (for example, a brand complaint), it's also flagged so you can see why in Seller Hub. Listings at quantity 0 aren't treated as ended.

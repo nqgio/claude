@@ -16,6 +16,8 @@ MKT = "/sell/marketing/v1"
 FUL = "/sell/fulfillment/v1"
 FIN = "/sell/finances/v1"
 TAX = "/commerce/taxonomy/v1"
+BROWSE = "/buy/browse/v1"
+NEG = "/sell/negotiation/v1"
 
 
 def _q(s: str) -> str:
@@ -57,6 +59,33 @@ def get_offers_for_sku(sku: str) -> list[dict]:
         if exc.status == 404:
             return []
         raise
+
+
+def search_items(query: str = "", gtin: str = "", limit: int = 50) -> list[dict]:
+    """Active eBay listings for a product (official Browse API, read-only): new, Buy It Now, ships to the US."""
+    params = {"limit": str(limit), "filter": "conditions:{NEW},buyingOptions:{FIXED_PRICE},deliveryCountry:US"}
+    if gtin:
+        params["gtin"] = gtin
+    else:
+        params["q"] = query[:100]
+    data = get_json(f"{BROWSE}/item_summary/search", token="app", family="browse", params=params,
+                    headers={"X-EBAY-C-MARKETPLACE-ID": st.get("marketplace_id")})
+    return data.get("itemSummaries", []) or []
+
+
+def offer_eligible_listings() -> list[str]:
+    """Listings with interested buyers (watchers) that eBay lets you send an offer to right now."""
+    data = get_json(f"{NEG}/find_eligible_items", family="negotiation", params={"limit": "200"},
+                    headers={"X-EBAY-C-MARKETPLACE-ID": st.get("marketplace_id")})
+    return [i["listingId"] for i in data.get("eligibleItems", []) or [] if i.get("listingId")]
+
+
+def send_offer(listing_id: str, discount_percent: int, message: str) -> list[dict]:
+    body = {"allowCounterOffer": False, "message": message[:2000], "offerDuration": {"unit": "DAY", "value": 2},
+            "offeredItems": [{"listingId": listing_id, "discountPercentage": str(int(discount_percent)), "quantity": 1}]}
+    r = request("POST", f"{NEG}/send_offer_to_interested_buyers", json=body, family="negotiation",
+                headers={"X-EBAY-C-MARKETPLACE-ID": st.get("marketplace_id")})
+    return (r.json() if r.content else {}).get("offers", [])
 
 
 def get_offer(offer_id: str) -> dict | None:

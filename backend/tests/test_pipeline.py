@@ -15,6 +15,10 @@ from app.providers import sample
 from app.services import metrics, orders, queue, refresh
 
 
+COMPETITORS: list[dict] = []  # what the mocked eBay search returns (other sellers' listings)
+ELIGIBLE: list[str] = []  # listings the mocked eBay says can get an offer
+
+
 @pytest.fixture
 def calls():
     """Mock eBay. Records every request; fails the test on any unexpected endpoint."""
@@ -24,6 +28,12 @@ def calls():
         path, m = req.url.path, req.method
         body = json.loads(req.content) if req.content and req.headers.get("content-type", "").startswith("application/json") else None
         log.append((m, path, dict(req.url.params), body))
+        if path.endswith("/sell/negotiation/v1/find_eligible_items"):
+            return httpx.Response(200, json={"eligibleItems": [{"listingId": i} for i in ELIGIBLE]})
+        if path.endswith("/sell/negotiation/v1/send_offer_to_interested_buyers"):
+            return httpx.Response(200, json={"offers": [{"offerId": "OF1"}]})
+        if path.endswith("/buy/browse/v1/item_summary/search"):
+            return httpx.Response(200, json={"itemSummaries": list(COMPETITORS)})
         if path.endswith("/oauth2/token"):
             return httpx.Response(200, json={"access_token": "tok", "expires_in": 7200})
         if path.endswith("get_default_category_tree_id"):
@@ -74,7 +84,11 @@ def calls():
     client._tokens.clear()
     ebay.category_tree_id.cache_clear()
     ebay._aspects_cached.cache_clear()
+    COMPETITORS.clear()
+    ELIGIBLE.clear()
     yield log
+    COMPETITORS.clear()
+    ELIGIBLE.clear()
     client.set_transport(None)
     client.RATE_PER_SEC.update(saved)
 
@@ -826,3 +840,85 @@ def test_post_anyway_overrides_the_blocklist_for_one_item(sample_source, calls):
         asin = s.get(QueueItem, qid).asin
     p, _ = products.fetch(asin)
     assert evaluate(p)["blocklisted"]                            # the word itself is still blocked everywhere else
+
+
+def _comp(title, price, ship=0.0, legacy="999"):
+    return {"itemId": f"v1|{legacy}|0", "legacyItemId": legacy, "title": title, "price": {"value": f"{price:.2f}"},
+            "shippingOptions": [{"shippingCost": {"value": f"{ship:.2f}"}}], "itemWebUrl": f"https://ebay.com/itm/{legacy}",
+            "seller": {"username": "rival"}}
+
+
+def test_competitor_matching_rules():
+    from app.services.competition import pack_count, same_product
+
+    ours = "Emart 7 ft Light Stand 2 Pack for Photography Speedlight Flash Softbox"
+    assert same_product(ours, "EMART", 35.99, _comp("EMART 7ft Light Stand 2 Pack Photography Softbox Speedlight", 39.36))
+    assert not same_product(ours, "EMART", 35.99, _comp("EMART 7ft Light Stand for Photography Softbox", 21.0))  # 1 vs 2 pack
+    assert not same_product(ours, "EMART", 35.99, _comp("Light Stand Replacement Knob Emart 2 Pack", 9.99))     # accessory
+    assert not same_product(ours, "EMART", 35.99, _comp("Neewer 2 Pack Backdrop Support Stand Kit", 33.0))      # other product
+    assert pack_count("Set of 4 bins") == 4 and pack_count("5 Pack Closet Bins") == 5 and pack_count("Lamp") is None
+
+
+def test_competitor_check_undercuts_skips_or_keeps(live, monkeypatch):
+    from app.models import utcnow  # noqa: F401
+    from app.services import competition, products
+    from app.services.evaluate import evaluate
+
+    st.update({"min_profit_dollars": 3})
+    p, _ = products.fetch("B0SAMPLE01")  # Amazon $13.99 → normal eBay price $22.99, profit $3.23
+    b = evaluate(p)["breakdown"]
+    words = " ".join(p.title.split()[:8])
+    COMPETITORS[:] = [_comp(words, 30.00)]
+    assert competition.check(p, b)["action"] == "keep"                      # nobody cheaper
+    COMPETITORS[:] = [_comp(words, 24.50)]
+    assert competition.check(p, b)["action"] == "keep"                      # still above our $22.99
+    st.update({"min_profit_dollars": 2.5, "margin_multiplier": 1.4})
+    b = evaluate(p)["breakdown"]                                            # now $26.99
+    r = competition.check(p, b)
+    assert r["action"] == "undercut" and r["breakdown"]["ebay_price"] == 23.99 and r["breakdown"]["profit"] >= 2.5
+    assert r["breakdown"]["competitor"]["price"] == 24.50
+    COMPETITORS[:] = [_comp(words, 19.00)]                                  # below what we can profitably do
+    r = competition.check(p, b)
+    assert r["action"] == "skip" and "$19.00" in r["reason"]
+    COMPETITORS[:] = [_comp(words, 19.00, legacy="110000000001")]           # that's our own listing: ignored
+    assert competition.cheapest_competitor(p, {"110000000001"}) is None
+    st.update({"competitor_check_enabled": False})
+    assert competition.check(p, b)["action"] == "keep"
+
+
+def test_refresh_sets_quantity_0_when_a_competitor_is_unbeatable(live, monkeypatch):
+    from app.services import listing_ops
+
+    queue.build_queue("test")
+    _post_all_scheduled()
+    with session_scope() as s:
+        l = s.query(Listing).one()
+        lid, title = l.id, l.title
+    qty = []
+    monkeypatch.setattr(listing_ops, "set_quantity", lambda i, q, r, status=None: qty.append((i, q, r)) or True)
+    COMPETITORS[:] = [_comp(" ".join(title.split()[:8]), 15.00)]
+    stats = refresh.run(force_fetch=True)
+    assert stats.get("competitor_cheaper") == 1 and qty and qty[0][1] == 0 and "competitor cheaper" in qty[0][2]
+
+
+def test_auto_offers_never_go_below_minimum_profit(live):
+    from app.services import offers
+
+    st.update({"margin_multiplier": 1.4, "min_profit_dollars": 3})
+    queue.build_queue("test")
+    _post_all_scheduled()
+    with session_scope() as s:
+        l = s.query(Listing).one()
+        price, cost, item_id = l.price, l.breakdown["amazon_cost"], l.ebay_listing_id
+    pct, profit = offers.best_discount(price, cost, 10)
+    assert 5 <= pct <= 10 and profit >= 3
+    assert offers.best_discount(price, price * 0.9, 10) == (None, None)  # no room at all → no offer
+
+    live.clear()
+    ELIGIBLE[:] = [item_id]
+    assert offers.send_offers() == {"eligible": 1, "sent": 1, "no_room": 0}
+    body = next(b for m, p, _, b in live if p.endswith("send_offer_to_interested_buyers"))
+    assert body["offeredItems"][0] == {"listingId": item_id, "discountPercentage": str(pct), "quantity": 1}
+    assert offers.send_offers()["sent"] == 0                       # not again within the wait period
+    st.update({"auto_offers_enabled": False})
+    assert "off" in offers.send_offers()["skipped"]
