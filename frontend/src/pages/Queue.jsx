@@ -103,6 +103,21 @@ export default function Queue() {
             <span className="min-w-[96px] px-1 text-center text-[12.5px] font-medium">{data ? (isToday ? "Today" : nice(data.date)) : "…"}</span>
             <Button size="sm" kind="ghost" icon={ChevronRight} disabled={isToday} onClick={() => setDay(newer && newer !== data?.today ? newer : null)} title="Later day" />
           </div>
+          {data && (
+            <label className="flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-[12.5px] font-medium shadow-xs"
+              title="On: skip products another eBay seller sells cheaper than you can profitably go, and price just under cheaper competitors. Off: your normal price, no competitor lookups.">
+              <Switch checked={!!data.competitor_check} label="Competitor check"
+                onChange={async (on) => {
+                  try {
+                    await api.put("/settings", { competitor_check_enabled: on });
+                    toast(on ? "Competitor check on: products cheaper elsewhere on eBay are skipped." :
+                      "Competitor check off: normal prices, nothing skipped for competitors. Listings it set to quantity 0 come back at the next refresh.", "success");
+                    reload();
+                  } catch (e) { toast(e.message, "error"); }
+                }} />
+              Competitor check
+            </label>
+          )}
           {build.running ? (
             <ActionButton kind="danger-soft" icon={CircleStop} action={() => api.post("/queue/stop")} onDone={() => setTimeout(reload, 1000)}>
               Stop search

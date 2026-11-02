@@ -387,6 +387,7 @@ def get_queue(day: str | None = None):
                 "items": [row(i) for i in items],
                 "window": [st.get("posting_window_start"), st.get("posting_window_end")],
                 "listings_per_day": st.get("listings_per_day"), "posted_today": queue.posted_today_count(), "dry_run_posted_today": queue.dry_run_posted_today_count(),
+                "competitor_check": st.get("competitor_check_enabled"),
                 "build": dict(queue.PROGRESS)}
 
 
