@@ -53,11 +53,10 @@
     "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
   },
   "voices": {
-    "_note": "Blends ('a:0.6,b:0.4') keep voice a's sound and pitch while borrowing b's smoother flow. Chosen by measured pitch + smoothness. Don't use plain am_michael/af_bella/af_nicole/am_onyx/bf_* alone (choppy). Tempo 1.05. 'polish': true adds compression + warmth + light room (smoother flow, same pitch).",
+    "_note": "Blends ('a:0.6,b:0.4') keep voice a's sound and pitch while borrowing b's smoother flow. Chosen by measured pitch + smoothness. Don't use plain am_michael/af_bella/af_nicole/am_onyx/bf_* alone (choppy). Tempo 1.05.",
     "narrator": {
-      "voice": "am_michael:0.4,am_puck:0.3,am_fenrir:0.3",
-      "speed": 1.05,
-      "polish": true
+      "voice": "am_michael:0.6,am_puck:0.4",
+      "speed": 1.05
     },
     "theo": {
       "voice": "am_puck",

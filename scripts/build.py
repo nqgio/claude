@@ -44,12 +44,12 @@ def tts(text, voice, speed):
 
 
 POLISH_CHAIN = ("highpass=f=70,equalizer=f=180:t=q:w=1:g=2.5,"
-                "acompressor=threshold=-22dB:ratio=3:attack=4:release=90:makeup=2,"
-                "aecho=0.85:0.6:28|55:0.22|0.14")
+                "acompressor=threshold=-22dB:ratio=2.5:attack=8:release=150:makeup=1.5")
+# NOTE: never add short echoes/reverb (aecho) to voices: it makes them sound metallic/robotic.
 
 
 def polish(audio):
-    """Narration polish: compression evens syllables, warmth EQ, a little room fills micro-gaps so words flow."""
+    """Optional gentle polish (voices with "polish": true): high-pass, warmth EQ, light compression. No echo."""
     import tempfile, os
     with tempfile.TemporaryDirectory() as d:
         i, o = os.path.join(d, "i.wav"), os.path.join(d, "o.wav")
