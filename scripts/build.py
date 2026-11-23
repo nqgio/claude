@@ -33,6 +33,25 @@ def voice_style(spec):
     return sum(float(w) / total * kokoro().get_voice_style(v.strip()) for v, w in parts)
 
 
+# Words spelled the same but pronounced differently; flagged at build time so the phonemes can be checked.
+HETERONYMS = {"live", "lives", "read", "lead", "leads", "tear", "tears", "wind", "close", "bass", "wound", "record",
+              "present", "object", "minute", "bow", "row", "dove", "desert", "use", "excuse", "content", "invalid",
+              "produce", "refuse", "polish", "sow", "moped", "wound", "separate", "permit", "conduct", "subject"}
+
+
+def apply_pronunciations(text, fixes):
+    """fixes: {"word or phrase": "respelling"} applied to the spoken text only (captions keep the original)."""
+    for src, dst in (fixes or {}).items():
+        text = re.sub(rf"\b{re.escape(src)}\b", dst, text, flags=re.I)
+    return text
+
+
+def check_heteronyms(text):
+    hits = [w for w in re.findall(r"[A-Za-z']+", text) if w.lower() in HETERONYMS]
+    if hits:
+        print(f"  pronunciation check {hits}: {kokoro().tokenizer.phonemize(text, 'en-us')}")
+
+
 def tts(text, voice, speed):
     audio, sr = kokoro().create(text, voice=voice_style(voice), speed=speed, lang="en-us")
     assert sr == SR
@@ -215,7 +234,9 @@ def build(ep_dir: Path, preview=False):
         else:
             vkey = speaker if speaker in voices else "narrator"
         v = voices[vkey]
-        audio = tts(sc["say"], v["voice"], v["speed"])
+        spoken = apply_pronunciations(sc["say"], {**bible.get("pronunciations", {}), **ep.get("pronunciations", {}), **sc.get("pronounce", {})})
+        check_heteronyms(spoken)
+        audio = tts(spoken, v["voice"], v["speed"])
         if v.get("tighten", True):
             audio = tighten_pauses(audio)
         if v.get("polish"):

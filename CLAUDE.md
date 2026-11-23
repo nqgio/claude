@@ -42,16 +42,17 @@ before writing anything.
    - Keep continuity: `transform.set` only changes traits; everything else carries over from `story.theo_state`.
    - Use a running gag or plot thread (Deb, Brett's bet, Nina, Gremlin) at least every other day.
    - Add a one-line `summary` (used as story memory for future days).
-6. **Preview**: `python3 scripts/build.py episodes/day-NNN --preview`, look at the 3 stills (Read the PNGs). Fix anything overlapping or unreadable.
-7. **Render**: `python3 scripts/build.py episodes/day-NNN` (≈1.5 min).
-8. **Publish**: `python3 scripts/publish.py episodes/day-NNN`. It is idempotent: if a step fails, fix it and re-run;
+6. **Pronunciation**: the build prints `pronunciation check` lines for words like lives/live/read/lead/close. Read the phonemes (e.g. `lˈaɪvz` = "life-s", `lˈɪvz` = "livs"). If one is wrong, reword or add `"pronounce": {"Lives": "Livs"}` to that scene.
+7. **Preview**: `python3 scripts/build.py episodes/day-NNN --preview`, look at the 3 stills (Read the PNGs). Fix anything overlapping or unreadable.
+8. **Render**: `python3 scripts/build.py episodes/day-NNN` (≈1.5 min).
+9. **Publish**: `python3 scripts/publish.py episodes/day-NNN`. It is idempotent: if a step fails, fix it and re-run;
    finished steps are skipped. It advances `story.json` only if at least one platform succeeded.
-9. **Commit** `series/story.json` + `episodes/day-NNN/{episode.json,inbox.json,published.json}` and push.
-10. **Hand-off file**: if TikTok isn't configured (or is in draft mode), or YouTube uploads are still audit-locked
+10. **Commit** `series/story.json` + `episodes/day-NNN/{episode.json,inbox.json,published.json}` and push.
+11. **Hand-off file**: if TikTok isn't configured (or is in draft mode), or YouTube uploads are still audit-locked
     (`YT_PRIVACY` unset and the user said the audit is pending), send `episodes/day-NNN/out/final.mp4` to the user with
     SendUserFile (`status: proactive`) so they can post it from their phone. If they upload to YouTube by hand, record it later with
     `python3 scripts/publish.py episodes/day-NNN --youtube-id <id>`.
-11. **Report** in 3–5 lines: winning comment, cameos, links, anything that failed, and token expiry warnings.
+12. **Report** in 3–5 lines: winning comment, cameos, links, anything that failed, and token expiry warnings.
 
 ### episode.json schema
 

@@ -312,5 +312,9 @@
       "Pixie texts 'nice haircut' the day Theo gets one, before he told her.",
       "During a power outage on Theo's street, Pixie also 'lost wifi'."
     ]
-  }
+  },
+  "pronunciations": {
+    "Gremlin's": "Gremlins"
+  },
+  "pronunciations_note": "Respellings applied to spoken text only. Heteronyms (lives/live/read/lead/close...) get misread at the start of a sentence: build.py prints their phonemes; fix by rewording ('Still lives', 'He lives') or adding a respelling like {\"Lives\": \"Livs\"} to the scene's 'pronounce'."
 }
