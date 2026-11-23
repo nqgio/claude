@@ -43,6 +43,21 @@ def tts(text, voice, speed):
     return audio.astype(np.float32)
 
 
+POLISH_CHAIN = ("highpass=f=70,equalizer=f=180:t=q:w=1:g=2.5,"
+                "acompressor=threshold=-22dB:ratio=3:attack=4:release=90:makeup=2,"
+                "aecho=0.85:0.6:28|55:0.22|0.14")
+
+
+def polish(audio):
+    """Narration polish: compression evens syllables, warmth EQ, a little room fills micro-gaps so words flow."""
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as d:
+        i, o = os.path.join(d, "i.wav"), os.path.join(d, "o.wav")
+        sf.write(i, audio, SR)
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", i, "-af", POLISH_CHAIN, o], check=True)
+        return sf.read(o, dtype="float32")[0]
+
+
 def mouth_envelope(audio, n_frames):
     hop = SR / FPS
     env = []
@@ -177,6 +192,8 @@ def build(ep_dir: Path, preview=False):
             vkey = speaker if speaker in voices else "narrator"
         v = voices[vkey]
         audio = tts(sc["say"], v["voice"], v["speed"])
+        if v.get("polish"):
+            audio = polish(audio)
         dur = len(audio) / SR
         tail = 0.28
         tr = None
