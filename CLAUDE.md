@@ -100,3 +100,8 @@ Each channel folder: `channel.json` (style, music, credential prefix, title/capt
 - Post only via `scripts/publish.py`. Never delete or edit past uploads. One episode per channel per day.
 - Credentials are per channel (`<PREFIX>_YT_REFRESH_TOKEN`, ...). Never copy one channel's keys to another.
 - Never add echo/reverb to voices (it sounds robotic). Don't commit secrets, `models/`, or `episodes/*/out/`.
+
+## Running from the local Shorts Bot (`bot/bot.py`)
+When the env var `BOT_MODE=1` is set, you're running headless on the user's computer, started by the bot's scheduler:
+nobody is watching. Don't use SendUserFile or ask questions. The prompt tells you which channel, whether to publish,
+and where to write your final report (the dashboard shows it). Use the Python executable named in the prompt.

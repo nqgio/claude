@@ -1,0 +1,6 @@
+kokoro-onnx>=0.4
+soundfile
+numpy
+requests
+flask>=3
+google-auth-oauthlib

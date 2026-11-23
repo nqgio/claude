@@ -1,0 +1,8 @@
+{
+  "name": "shorts-bot",
+  "private": true,
+  "description": "Renderer dependency for the Shorts Bot (headless Chromium via Playwright).",
+  "dependencies": {
+    "playwright": "1.48.2"
+  }
+}

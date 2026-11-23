@@ -5,3 +5,9 @@ __pycache__/
 *.pyc
 .env
 client_secret*.json
+node_modules/
+bot/config.json
+bot/state.json
+bot/logs/
+bot/client_secret.json
+package-lock.json
