@@ -1,0 +1,41 @@
+{
+  "day": 1,
+  "title": ["THEO HAS", "100 DAYS"],
+  "chosen_comment": null,
+  "cast": {},
+  "scenes": [
+    {
+      "bg": "basement",
+      "speaker": "narrator",
+      "theo": { "expression": "neutral" },
+      "say": "This is Theo. He's twenty three, and he hasn't left his mom's basement in three years."
+    },
+    {
+      "bg": "basement",
+      "speaker": "narrator",
+      "theo": { "expression": "shocked" },
+      "prop": "letter",
+      "say": "This morning, his mom slid a letter under the door. In one hundred days, the basement becomes her pottery studio."
+    },
+    {
+      "bg": "basement",
+      "speaker": "deb",
+      "others": [ { "who": "deb", "expression": "angry" } ],
+      "theo": { "expression": "sad" },
+      "say": "Get a job. Get a life. Get out. Love, Mom."
+    },
+    {
+      "bg": "basement",
+      "speaker": "theo",
+      "theo": { "expression": "determined" },
+      "say": "Okay okay okay. I can't make decisions. So you're gonna make them for me."
+    },
+    {
+      "bg": "basement",
+      "speaker": "theo",
+      "theo": { "expression": "happy", "pose": "wave" },
+      "say": "Top comment decides what I fix tomorrow. And if you wanna be in it, tell me who you wanna be."
+    }
+  ],
+  "cta": ["TOP COMMENT DECIDES", "DAY 2"]
+}

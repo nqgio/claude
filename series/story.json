@@ -1,0 +1,16 @@
+{
+  "next_day": 1,
+  "theo_state": {
+    "name": "Theo", "skin": "#f1c08f", "hair": "greasy_mess", "hair_color": "#3b2a1e",
+    "unibrow": true, "brows": "bushy", "acne": 3, "eye_bags": true, "glasses": "taped",
+    "nose_hair": true, "facial_hair": "patchy", "teeth": "yellow", "body": "chubby",
+    "outfit": "stained_hoodie", "smelly": true, "posture": "slouch", "accessories": []
+  },
+  "plot_threads": {
+    "brett_bet": "Brett bet $500 Theo quits within a week.",
+    "nina": "Nina just moved back across the street. Theo hasn't talked to her yet.",
+    "deb": "Deb's deadline: Day 100."
+  },
+  "cameos_used": [],
+  "episodes": []
+}

@@ -1,0 +1,18 @@
+{
+  "day": 3,
+  "title": ["THE UNIBROW", "IS GONE"],
+  "chosen_comment": { "author": "@sleepyfrog22", "text": "pluck the unibrow and let me be the doctor", "likes": 1843, "platform": "youtube" },
+  "cast": { "guest1": { "username": "@sleepyfrog22", "role": "doctor", "voice": "guest_m" } },
+  "scenes": [
+    { "bg": "doctor_office", "speaker": "narrator", "theo": { "expression": "shocked" },
+      "say": "Top comment from sleepy frog said: the unibrow has to go. And he wanted to do it himself." },
+    { "bg": "doctor_office", "speaker": "guest1", "others": [ { "who": "guest1", "expression": "smug" } ], "theo": { "expression": "sad" },
+      "say": "Hold still. This is gonna hurt you more than me." },
+    { "bg": "doctor_office", "speaker": "theo", "others": [ { "who": "guest1", "expression": "determined" } ], "theo": { "expression": "shocked" },
+      "say": "Okay okay okay. Do it.",
+      "transform": { "set": { "unibrow": false, "brows": "groomed" }, "label": "RIIIP!", "after_expression": "happy" } },
+    { "bg": "doctor_office", "speaker": "theo", "theo": { "expression": "happy", "pose": "flex" },
+      "say": "Two eyebrows! I have two eyebrows! Brett, you're losing that bet." }
+  ],
+  "cta": ["TOP COMMENT DECIDES", "DAY 4"]
+}

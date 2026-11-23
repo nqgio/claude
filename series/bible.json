@@ -1,0 +1,118 @@
+{
+  "series_title": "Theo Has 100 Days",
+  "suggested_handle": "@theohas100days",
+  "logline": "Theo is 23, hasn't left his mom's basement in three years, and just got evicted by his own mother. He has 100 days to fix his face, his body, his life and get out. The comments decide everything he does.",
+  "premise": [
+    "Day 1: Theo's mom, Deb, slides a letter under his door: 'In 100 days this basement becomes my pottery studio. Get a job, get a life, get OUT. Love, Mom.'",
+    "The same morning, Nina, his childhood best friend he never stopped thinking about, moves back into the house across the street.",
+    "His annoyingly perfect cousin Brett publicly bets $500 that Theo won't last a week.",
+    "Theo can't make decisions on his own (that's how he ended up here), so he lets the internet decide: every day the top comment picks what he fixes or does next."
+  ],
+  "end_goal": "By Day 100: a job, his own apartment, and the nerve to ask Nina to the end-of-summer block party. Brett loses the bet.",
+  "arc": [
+    { "days": "1-20",   "phase": "THE BASEMENT ERA", "focus": "Hygiene and face: shower, acne, unibrow, nose hairs, teeth, glasses, haircut, the hoodie must die." },
+    { "days": "21-40",  "phase": "BUILDING THEO", "focus": "Body and style: first gym day, posture, running, cooking instead of pizza, new clothes, sleep schedule." },
+    { "days": "41-60",  "phase": "LEAVING THE HOUSE", "focus": "Social: talk to a stranger, rizz class, dance lessons, first party, apologize to an old friend, run into Nina." },
+    { "days": "61-80",  "phase": "GET A JOB", "focus": "Resume, interviews (with commenter cameos as interviewers), first job, first paycheck, Brett tries to sabotage." },
+    { "days": "81-100", "phase": "MOVE OUT", "focus": "Apartment hunting, saying goodbye to the basement, Deb gets emotional, the block party finale with Nina." }
+  ],
+  "tone": "Wholesome roast. Theo is the butt of the joke, but the audience is on his side. Never cruel, never body-shaming beyond cartoon gags, and every win is celebrated loudly.",
+  "format": {
+    "length_seconds": "20-35",
+    "structure": [
+      "HOOK (first 2 s): title card 'DAY N' + 2-line headline, character mid-reaction.",
+      "SETUP: 1-2 lines on what the comments chose (credit the commenter by @handle).",
+      "THE ATTEMPT: Theo tries it, something goes slightly wrong (comedy beat).",
+      "THE CHANGE: transformation flash, visible state change.",
+      "PAYOFF: reaction, a running-gag callback (Deb, Brett, Nina, or the bet).",
+      "CTA: 'Top comment decides Day N+1' + cameo invite."
+    ],
+    "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
+  },
+  "voices": {
+    "narrator": { "voice": "am_michael", "speed": 1.12 },
+    "theo":     { "voice": "am_puck",    "speed": 1.12 },
+    "deb":      { "voice": "af_sarah",   "speed": 1.08 },
+    "brett":    { "voice": "am_eric",    "speed": 1.1 },
+    "nina":     { "voice": "af_heart",   "speed": 1.08 },
+    "guest_m":  { "voice": "am_adam",    "speed": 1.1 },
+    "guest_f":  { "voice": "af_nova",    "speed": 1.1 }
+  },
+  "cast": {
+    "theo": {
+      "role": "Main character. 23. Gamer, night owl, secretly funny and kind. Talks to his cat Gremlin. Says 'okay okay okay' when nervous.",
+      "start_state": {
+        "name": "Theo", "skin": "#f1c08f", "hair": "greasy_mess", "hair_color": "#3b2a1e",
+        "unibrow": true, "brows": "bushy", "acne": 3, "eye_bags": true, "glasses": "taped",
+        "nose_hair": true, "facial_hair": "patchy", "teeth": "yellow", "body": "chubby",
+        "outfit": "stained_hoodie", "smelly": true, "posture": "slouch", "accessories": []
+      }
+    },
+    "deb": {
+      "role": "Theo's mom. Loving but DONE. Communicates through notes under the door and dramatic sighs. Secretly his biggest fan.",
+      "state": { "name": "Deb", "skin": "#e8b48a", "hair": "bun", "hair_color": "#8a8a8a", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "stylish", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "average", "outfit": "cardigan", "smelly": false, "posture": "straight" }
+    },
+    "brett": {
+      "role": "Theo's cousin. Fitness influencer, says 'bro' a lot, made a $500 bet against Theo. Antagonist, but gets humbled.",
+      "state": { "name": "Brett", "skin": "#f3c9a0", "hair": "styled", "hair_color": "#e3b23c", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "none", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "fit", "outfit": "jacket", "outfit_color": "#d9d9d9", "smelly": false, "posture": "straight", "accessories": ["chain"] }
+    },
+    "nina": {
+      "role": "Childhood best friend, just moved back across the street. Confident, into skateboarding and plants. The slow-burn payoff. Appears rarely so it means something.",
+      "state": { "name": "Nina", "skin": "#c98e62", "hair": "long", "hair_color": "#1f1611", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "none", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "average", "outfit": "tshirt", "outfit_color": "#2aa198", "smelly": false, "posture": "straight" }
+    }
+  },
+  "running_gags": [
+    "Deb's notes under the door, each more passive-aggressive.",
+    "The '$500 BET' tracker: Brett checks in, gets more nervous every week.",
+    "Gremlin the cat (off-screen) knocks something over at the worst moment.",
+    "Theo's 'okay okay okay' before every challenge.",
+    "A countdown in the corner: 'DAYS LEFT: N'."
+  ],
+  "voting_rules": {
+    "how": "Read comments on yesterday's YouTube Short and Instagram Reel. Rank by likes (YouTube likeCount, Instagram like_count). Ignore the channel's own comments.",
+    "pick": "Most-liked comment that is (a) a doable glow-up / life task or plot choice, (b) safe and kind, (c) not a repeat of something already done. If the top one is unusable, take the next.",
+    "fallback": "If there are no usable comments, take the next item from backlog_ideas and say 'the comments were quiet so Gremlin picked'.",
+    "credit": "Always credit the winner on screen and in narration: 'Top comment from @handle said...'. Reply to their comment after publishing."
+  },
+  "cameo_rules": {
+    "what": "Commenters can ask to appear, e.g. 'can I be the doctor?', 'let me be his barber', 'I'll be the gym coach', 'make me the interviewer'.",
+    "selection": "If today's task naturally needs a helper role, pick the most-liked cameo request whose role fits. Otherwise pick at most one fun cameo (bystander, customer, judge). Max 2 cameos per episode.",
+    "how_they_appear": "As a cartoon guest generated from their username (look is deterministic from the handle), dressed for the role, with a name tag showing their @handle. They can have 1-2 short lines.",
+    "safety": [
+      "Only use the public @handle they commented with. Never their real name, photo, location or anything else.",
+      "Skip handles that are offensive, sexual, impersonate a brand or public figure, or look like a real full name of a private person; skip handles that look like they belong to a minor's school or contain ages under 18.",
+      "Never write cameo lines that mock the commenter.",
+      "Max 18 characters shown on the name tag; truncate with an ellipsis."
+    ],
+    "follow_up": "After publishing, reply to the cameo comment: 'You're in Day N, go see yourself 👀'."
+  },
+  "role_outfits": {
+    "doctor": "lab_coat", "dermatologist": "lab_coat", "dentist": "lab_coat", "nurse": "lab_coat", "optometrist": "lab_coat",
+    "barber": "apron", "stylist": "apron", "hairdresser": "apron",
+    "coach": "tracksuit", "trainer": "tracksuit", "personal trainer": "tracksuit", "dance teacher": "tracksuit",
+    "chef": "chef", "cook": "chef",
+    "cop": "uniform", "security": "uniform", "mail carrier": "uniform",
+    "interviewer": "suit", "boss": "suit", "landlord": "suit", "judge": "suit"
+  },
+  "safety_rules": [
+    "No sexual content, no self-harm or dangerous challenges, no real public figures, no hate or harassment, no medical claims beyond cartoon gags.",
+    "Comment suggestions that would be humiliating in a mean way get reframed into something Theo wins at, or skipped.",
+    "No brand names or copyrighted characters/music."
+  ],
+  "backlog_ideas": [
+    "Theo takes his first shower in 11 days",
+    "Theo deals with the acne",
+    "Theo plucks the unibrow",
+    "Theo trims the nose hairs",
+    "Theo whitens his teeth",
+    "Theo gets new glasses",
+    "Theo gets a real haircut",
+    "Theo burns the hoodie",
+    "Theo goes to the gym for the first time",
+    "Theo fixes his posture",
+    "Theo cooks a real meal",
+    "Theo cleans the basement",
+    "Theo goes outside and touches grass",
+    "Theo says hi to Nina (and panics)"
+  ]
+}
