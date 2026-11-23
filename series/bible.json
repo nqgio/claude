@@ -53,37 +53,38 @@
     "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
   },
   "voices": {
+    "_note": "Chosen by measured pitch variation + smoothness on the full-precision Kokoro model. Avoid am_michael, af_nicole, am_onyx, bf_* (flat/choppy).",
     "narrator": {
-      "voice": "am_michael",
-      "speed": 1.12
+      "voice": "am_fenrir",
+      "speed": 1.05
     },
     "theo": {
       "voice": "am_puck",
-      "speed": 1.12
+      "speed": 1.05
     },
     "deb": {
-      "voice": "af_sarah",
-      "speed": 1.08
+      "voice": "af_kore",
+      "speed": 1.05
     },
     "brett": {
-      "voice": "am_eric",
-      "speed": 1.1
+      "voice": "am_liam",
+      "speed": 1.05
     },
     "nina": {
-      "voice": "af_heart",
-      "speed": 1.08
+      "voice": "af_river",
+      "speed": 1.05
+    },
+    "pixie": {
+      "voice": "af_jessica",
+      "speed": 1.05
     },
     "guest_m": {
-      "voice": "am_adam",
-      "speed": 1.1
+      "voice": "am_liam",
+      "speed": 1.05
     },
     "guest_f": {
       "voice": "af_nova",
-      "speed": 1.1
-    },
-    "pixie": {
-      "voice": "af_bella",
-      "speed": 1.1
+      "speed": 1.05
     }
   },
   "cast": {

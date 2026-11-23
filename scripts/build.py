@@ -20,7 +20,7 @@ def kokoro():
     global _kokoro
     if _kokoro is None:
         from kokoro_onnx import Kokoro
-        _kokoro = Kokoro(str(ROOT / "models/kokoro-v1.0.int8.onnx"), str(ROOT / "models/voices-v1.0.bin"))
+        _kokoro = Kokoro(str(ROOT / "models/kokoro-v1.0.onnx"), str(ROOT / "models/voices-v1.0.bin"))
     return _kokoro
 
 

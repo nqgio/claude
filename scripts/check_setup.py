@@ -21,7 +21,7 @@ print("Rendering")
 check("ffmpeg", shutil.which("ffmpeg"), "apt-get install -y ffmpeg")
 check("node", shutil.which("node"), "install Node 18+")
 check("playwright", subprocess.run(["node", "-e", "require('playwright')"], capture_output=True).returncode == 0, "npm i -g playwright && npx playwright install chromium")
-check("voice model", (ROOT / "models/kokoro-v1.0.int8.onnx").exists() and (ROOT / "models/voices-v1.0.bin").exists(), "bash scripts/bootstrap.sh")
+check("voice model", (ROOT / "models/kokoro-v1.0.onnx").exists() and (ROOT / "models/voices-v1.0.bin").exists(), "bash scripts/bootstrap.sh")
 try:
     import kokoro_onnx, soundfile, numpy, requests  # noqa: F401
     check("python packages", True)
