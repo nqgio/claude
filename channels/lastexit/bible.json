@@ -16,14 +16,66 @@
   },
   "voices": {
     "_note": "Narrator: am_puck blended with am_onyx (deeper, gritty). Never add echo/reverb to voices.",
-    "narrator": { "voice": "am_puck:0.6,am_onyx:0.4", "speed": 1.12 },
-    "stranger": { "voice": "am_onyx", "speed": 1.0 },
-    "guest_m": { "voice": "am_adam:0.7,am_liam:0.3", "speed": 1.08 },
-    "guest_f": { "voice": "af_nova", "speed": 1.08 }
+    "narrator": {
+      "voice": "am_puck:0.6,am_onyx:0.4",
+      "speed": 1.12
+    },
+    "stranger": {
+      "voice": "am_onyx",
+      "speed": 1.0
+    },
+    "guest_m": {
+      "voice": "am_adam:0.7,am_liam:0.3",
+      "speed": 1.08
+    },
+    "guest_f": {
+      "voice": "af_nova",
+      "speed": 1.08
+    }
   },
   "cast": {
-    "you": { "state": { "skin": "#e0a979", "hair": "beanie", "hair_color": "#2b2d33", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": true, "glasses": "none", "nose_hair": false, "facial_hair": "patchy", "teeth": "white", "body": "average", "outfit": "hoodie", "outfit_color": "#7a1f2b", "smelly": false, "posture": "straight" } },
-    "stranger": { "state": { "skin": "#c98e62", "hair": "bald", "hair_color": "#1f1611", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "shades", "nose_hair": false, "facial_hair": "goatee", "teeth": "white", "body": "fit", "outfit": "suit", "smelly": false, "posture": "straight", "accessories": ["chain"] } }
+    "you": {
+      "state": {
+        "skin": "#e0a979",
+        "hair": "beanie",
+        "hair_color": "#2b2d33",
+        "unibrow": false,
+        "brows": "groomed",
+        "acne": 0,
+        "eye_bags": true,
+        "glasses": "none",
+        "nose_hair": false,
+        "facial_hair": "patchy",
+        "teeth": "white",
+        "body": "average",
+        "outfit": "hoodie",
+        "outfit_color": "#7a1f2b",
+        "smelly": false,
+        "posture": "straight"
+      }
+    },
+    "stranger": {
+      "state": {
+        "skin": "#c98e62",
+        "hair": "bald",
+        "hair_color": "#1f1611",
+        "unibrow": false,
+        "brows": "groomed",
+        "acne": 0,
+        "eye_bags": false,
+        "glasses": "shades",
+        "nose_hair": false,
+        "facial_hair": "goatee",
+        "teeth": "white",
+        "body": "fit",
+        "outfit": "suit",
+        "smelly": false,
+        "posture": "straight",
+        "accessories": [
+          "chain"
+        ]
+      }
+    }
   },
   "voting_rules": {
     "how": "Each comment = one vote for the first option it names (keyword, label or letter A/B). Show the split as a stamp at the start of the next part, e.g. 'OPENED · 64%'.",
@@ -38,6 +90,8 @@
     "actors": "{you: {x, y, s, expression, pose}, stranger: {...}}",
     "hud": "{cash, heat, trust}: values animate from the previous scene",
     "stamp": "big red stamp text, e.g. 'OPENED · 64%'",
-    "shake": "camera shake", "flash": "white flash cut"
-  }
+    "shake": "camera shake",
+    "flash": "white flash cut"
+  },
+  "brand": "assets/brand/lastexit/ (avatar.png, banner.png); names, handles and bios in assets/brand/BRAND_KIT.md"
 }

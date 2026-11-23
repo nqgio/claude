@@ -19,7 +19,7 @@ waiting on the platforms. **You can start with just one platform**: anything tha
 ## 1. Create the accounts
 
 Use the same name everywhere: **Theo Has 100 Days**, handle **@theohas100days** (or anything you like).
-- Profile picture: `assets/brand/avatar.png`
+- Profile picture + YouTube banner: `assets/brand/<channel>/avatar.png` and `banner.png`. Names, handles and bios for every platform: `assets/brand/BRAND_KIT.md`
 - Bio: `Theo has 100 days to fix his life and move out of his mom's basement. YOU decide what he does. Top comment wins 👇`
 - **YouTube**: create a channel on a Google account you control (youtube.com → Create a channel).
 - **Instagram**: create the account, then Settings → *Account type and tools* → **Switch to professional account** → Creator.

@@ -316,5 +316,6 @@
   "pronunciations": {
     "Gremlin's": "Gremlins"
   },
-  "pronunciations_note": "Respellings applied to spoken text only. Heteronyms (lives/live/read/lead/close...) get misread at the start of a sentence: build.py prints their phonemes; fix by rewording ('Still lives', 'He lives') or adding a respelling like {\"Lives\": \"Livs\"} to the scene's 'pronounce'."
+  "pronunciations_note": "Respellings applied to spoken text only. Heteronyms (lives/live/read/lead/close...) get misread at the start of a sentence: build.py prints their phonemes; fix by rewording ('Still lives', 'He lives') or adding a respelling like {\"Lives\": \"Livs\"} to the scene's 'pronounce'.",
+  "brand": "assets/brand/theo/ (avatar.png, banner.png); names, handles and bios in assets/brand/BRAND_KIT.md"
 }

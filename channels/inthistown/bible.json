@@ -71,5 +71,6 @@
     "THE SNOWMAN: if a snowman appears in your yard overnight, don't knock it down.",
     "THE BELL: when the church bell rings 13 times, don't look out the window.",
     "THE NEW KID: if someone you don't remember says they've always lived here, agree with them."
-  ]
+  ],
+  "brand": "assets/brand/inthistown/ (avatar.png, banner.png); names, handles and bios in assets/brand/BRAND_KIT.md"
 }

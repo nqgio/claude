@@ -11,18 +11,72 @@
   },
   "voices": {
     "_note": "Calm explainer: am_echo blended with am_fenrir. Never add echo/reverb to voices.",
-    "narrator": { "voice": "am_echo:0.6,am_fenrir:0.4", "speed": 1.08 }
+    "narrator": {
+      "voice": "am_echo:0.6,am_fenrir:0.4",
+      "speed": 1.08
+    }
   },
   "voting_rules": {
     "how": "On the last day of a topic, the most-liked comment naming a system/industry picks the next topic. During a topic, comments can request 'show it with X' and the best one can be used as a demonstration.",
     "fallback": "Next item in topic_backlog."
   },
   "topic_backlog": [
-    { "topic": "How casinos keep you playing", "rules": ["Take away time (no clocks, no windows)", "Swap money for chips", "Make you walk past everything (maze layouts)", "Near misses feel like almost winning", "Free drinks, loose judgment", "Celebrate small wins loudly", "Make leaving feel like losing (comps, status tiers)"] },
-    { "topic": "How scammers get your money", "rules": ["Create urgency", "Impersonate authority", "Isolate you from advice", "Ask for small first", "Pick untraceable payment", "Recycle victims ('recovery' scams)"] },
-    { "topic": "How apps steal your attention", "rules": ["Infinite feed (no stopping point)", "Variable rewards", "Red notification badges", "Streaks", "Autoplay", "Social proof counters"] },
-    { "topic": "How supermarkets make you spend more", "rules": ["Essentials at the back", "Eye level is buy level", "Music tempo", "Bigger carts", "Fake sales with anchor prices", "Checkout impulse aisle"] },
-    { "topic": "How cults recruit", "rules": ["Love bombing", "Us vs them", "Slow escalation of commitment", "Control information", "Sleep and time pressure", "Make leaving cost everything"] }
+    {
+      "topic": "How casinos keep you playing",
+      "rules": [
+        "Take away time (no clocks, no windows)",
+        "Swap money for chips",
+        "Make you walk past everything (maze layouts)",
+        "Near misses feel like almost winning",
+        "Free drinks, loose judgment",
+        "Celebrate small wins loudly",
+        "Make leaving feel like losing (comps, status tiers)"
+      ]
+    },
+    {
+      "topic": "How scammers get your money",
+      "rules": [
+        "Create urgency",
+        "Impersonate authority",
+        "Isolate you from advice",
+        "Ask for small first",
+        "Pick untraceable payment",
+        "Recycle victims ('recovery' scams)"
+      ]
+    },
+    {
+      "topic": "How apps steal your attention",
+      "rules": [
+        "Infinite feed (no stopping point)",
+        "Variable rewards",
+        "Red notification badges",
+        "Streaks",
+        "Autoplay",
+        "Social proof counters"
+      ]
+    },
+    {
+      "topic": "How supermarkets make you spend more",
+      "rules": [
+        "Essentials at the back",
+        "Eye level is buy level",
+        "Music tempo",
+        "Bigger carts",
+        "Fake sales with anchor prices",
+        "Checkout impulse aisle"
+      ]
+    },
+    {
+      "topic": "How cults recruit",
+      "rules": [
+        "Love bombing",
+        "Us vs them",
+        "Slow escalation of commitment",
+        "Control information",
+        "Sleep and time pressure",
+        "Make leaving cost everything"
+      ]
+    }
   ],
   "safety_rules": [
     "Educational and protective framing: the point is to help viewers recognize manipulation.",
@@ -34,5 +88,6 @@
     "plaque": "text on the gold plaque (e.g. '7 RULES', 'RULE 1')",
     "people": "walk | loop (circling the casino)",
     "focus": "[x,y] zoom center; zoom: amount (default 0.04)"
-  }
+  },
+  "brand": "assets/brand/modeltown/ (avatar.png, banner.png); names, handles and bios in assets/brand/BRAND_KIT.md"
 }
