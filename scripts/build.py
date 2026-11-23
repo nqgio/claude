@@ -122,6 +122,12 @@ def sfx_sparkle():
     return out
 
 
+def sfx_ding():
+    L = int(0.35 * SR); tt = np.arange(L) / SR
+    tone = np.sin(2 * np.pi * 1318 * tt) * (tt < 0.09) + np.sin(2 * np.pi * 1760 * tt) * (tt >= 0.09)
+    return (0.35 * tone * np.exp(-tt * 9)).astype(np.float32)
+
+
 def sfx_pop():
     L = int(0.12 * SR); tt = np.arange(L) / SR
     f = 900 * np.exp(-tt * 25) + 200
@@ -180,6 +186,11 @@ def build(ep_dir: Path, preview=False):
         if tr:
             tr["frame"] = start_f + speak_frames + 4
             scene["transform"] = tr
+        if sc.get("texts"):
+            # bubbles appear spread across the spoken part of the scene
+            n_t = len(sc["texts"])
+            scene["texts"] = [dict(m, appear_frame=start_f + 10 + round(i * (speak_frames - 10) / n_t)) for i, m in enumerate(sc["texts"])]
+            scene["texts_title"] = sc.get("texts_title")
         scenes.append(scene)
         voice_clips.append((t, audio))
         t += dur + tail
@@ -227,6 +238,8 @@ def build(ep_dir: Path, preview=False):
             at = sc["transform"]["frame"] / FPS
             mix_into(mixbuf, sfx_poof(), at - 0.15, 0.7)
             mix_into(mixbuf, sfx_sparkle(), at + 0.1, 0.8)
+        for m in sc.get("texts", []):
+            mix_into(mixbuf, sfx_ding() if m.get("from") != "theo" else sfx_pop(), m["appear_frame"] / FPS, 0.8)
     mix_into(mixbuf, sfx_pop(), (total - cta_len), 0.8)
     mixbuf = mixbuf[: int(total * SR)]
     mixbuf /= max(1.0, float(np.max(np.abs(mixbuf))) / 0.95)

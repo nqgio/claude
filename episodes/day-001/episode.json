@@ -1,40 +1,52 @@
 {
   "day": 1,
-  "title": ["THEO HAS", "100 DAYS"],
+  "title": ["SHE BOOKED", "THE FLIGHT"],
+  "accent": "#ff6fb5",
+  "summary": "Pixie, Theo's online girlfriend of 2 years, booked a flight to meet him in 100 days. Everything he told her about himself is a lie.",
   "chosen_comment": null,
   "cast": {},
   "scenes": [
     {
       "bg": "basement",
       "speaker": "narrator",
-      "theo": { "expression": "neutral" },
-      "say": "This is Theo. He's twenty three, and he hasn't left his mom's basement in three years."
+      "theo": { "expression": "happy" },
+      "say": "This is Theo. For two years, he's been dating a girl named Pixie. They met in an online game. They've never seen each other's faces."
     },
     {
       "bg": "basement",
       "speaker": "narrator",
       "theo": { "expression": "shocked" },
-      "prop": "letter",
-      "say": "This morning, his mom slid a letter under the door. In one hundred days, the basement becomes her pottery studio."
+      "texts": [
+        { "from": "pixie", "text": "guess what" },
+        { "from": "pixie", "text": "i booked my flight" },
+        { "from": "pixie", "text": "100 days. i finally get to meet you", "heart": true }
+      ],
+      "say": "This morning, she texted him. She booked a flight. One hundred days from now, she's coming to meet him."
+    },
+    {
+      "bg": "basement",
+      "speaker": "narrator",
+      "theo": { "expression": "sad" },
+      "say": "One problem. Theo told her he's a six foot two firefighter, with abs, who plays guitar, speaks French, and has his own apartment."
     },
     {
       "bg": "basement",
       "speaker": "deb",
-      "others": [ { "who": "deb", "expression": "angry" } ],
-      "theo": { "expression": "sad" },
-      "say": "Get a job. Get a life. Get out. Love, Mom."
+      "others": [ { "who": "deb", "expression": "happy" } ],
+      "theo": { "expression": "shocked" },
+      "say": "Theo! Is that a GIRL? Is she real? Should I make a lasagna?"
     },
     {
       "bg": "basement",
       "speaker": "theo",
       "theo": { "expression": "determined" },
-      "say": "Okay okay okay. I can't make decisions. So you're gonna make them for me."
+      "say": "Okay okay okay. A hundred days to make every lie true. I can't do this alone."
     },
     {
       "bg": "basement",
       "speaker": "theo",
       "theo": { "expression": "happy", "pose": "wave" },
-      "say": "Top comment decides what I fix tomorrow. And if you wanna be in it, tell me who you wanna be."
+      "say": "Top comment picks what I fix tomorrow. Want to be in it? Tell me who you'd be."
     }
   ],
   "cta": ["TOP COMMENT DECIDES", "DAY 2"]

@@ -69,6 +69,60 @@
     return '';
   }
 
+
+  function wrap(text, n) {
+    const words = text.split(' '); const lines = []; let cur = '';
+    for (const w of words) { if (cur && (cur + ' ' + w).length > n) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }
+    if (cur) lines.push(cur); return lines;
+  }
+
+  function pixelHeart(x, y, px, color) {
+    const rows = ['01100110', '11111111', '11111111', '11111111', '01111110', '00111100', '00011000'];
+    let out = '';
+    rows.forEach((r, j) => [...r].forEach((c, i) => { if (c === '1') out += `<rect x="${x + i * px}" y="${y + j * px}" width="${px}" height="${px}" fill="${color}"/>`; }));
+    return out;
+  }
+
+  // Phone screen with chat bubbles that pop in at their appear_frame.
+  function phone(sc, frame) {
+    const local = frame - sc.start_frame;
+    const k = back(local / 8);
+    const X = 50, Y = 650, PW = 540, PH = 760;
+    let out = `<g transform="translate(${X + PW / 2} ${Y + PH / 2}) rotate(-3) scale(${k}) translate(${-PW / 2} ${-PH / 2})">`;
+    out += `<rect x="-14" y="-14" width="${PW + 28}" height="${PH + 28}" rx="64" fill="#15151f" stroke="${INK}" stroke-width="8"/>`;
+    out += `<rect x="0" y="0" width="${PW}" height="${PH}" rx="50" fill="#fdf2f8"/>`;
+    out += `<rect x="0" y="0" width="${PW}" height="120" rx="50" fill="#ffffff"/><rect x="0" y="70" width="${PW}" height="50" fill="#ffffff"/>`;
+    out += `<path d="M 0 120 L ${PW} 120" stroke="#eadbe4" stroke-width="3"/>`;
+    out += `<circle cx="80" cy="66" r="38" fill="#ffd6ea" stroke="${INK}" stroke-width="4"/>` + pixelHeart(56, 46, 6, '#ff4fa3');
+    out += `<text x="135" y="62" font-family="Nunito" font-weight="900" font-size="34" fill="${INK}">${esc(sc.texts_title || 'pixie <3')}</text>`;
+    out += `<circle cx="143" cy="88" r="7" fill="#2ecc71"/><text x="157" y="96" font-family="Nunito" font-weight="800" font-size="22" fill="#7b7b8b">online</text>`;
+    let y = 160;
+    const shown = sc.texts.filter((m) => frame >= m.appear_frame);
+    // keep the latest messages visible
+    const blocks = shown.map((m) => ({ m, lines: wrap(m.text, 15) }));
+    let total = blocks.reduce((a, b) => a + b.lines.length * 50 + 48, 0);
+    while (total > PH - 190 && blocks.length > 1) { const b = blocks.shift(); total -= b.lines.length * 50 + 48; }
+    for (const { m, lines } of blocks) {
+      const me = m.from === 'theo';
+      const bw = Math.max(...lines.map((l) => l.length)) * 24 + 48, bh = lines.length * 50 + 26;
+      const bx = me ? PW - 30 - bw : 30;
+      const pk = back((frame - m.appear_frame) / 5);
+      out += `<g transform="translate(${bx + (me ? bw : 0)} ${y}) scale(${pk}) translate(${me ? -bw : 0} 0)">`;
+      out += `<rect x="0" y="0" width="${bw}" height="${bh}" rx="26" fill="${me ? '#3d7bd9' : '#ffffff'}" stroke="${me ? '#2c5fb0' : '#eadbe4'}" stroke-width="3"/>`;
+      lines.forEach((l, i) => { out += `<text x="22" y="${52 + i * 50}" font-family="Nunito" font-weight="800" font-size="42" fill="${me ? '#fff' : INK}">${esc(l)}</text>`; });
+      if (m.heart) out += pixelHeart(bw - 30, bh - 18, 4, '#ff4fa3');
+      out += `</g>`;
+      y += bh + 22;
+    }
+    const typing = sc.texts.find((m) => m.from !== 'theo' && frame < m.appear_frame && frame >= m.appear_frame - 14);
+    if (typing) {
+      out += `<g transform="translate(30 ${y})"><rect width="110" height="56" rx="28" fill="#fff" stroke="#eadbe4" stroke-width="3"/>`;
+      for (let i = 0; i < 3; i++) out += `<circle cx="${30 + i * 25}" cy="${28 - 6 * Math.max(0, Math.sin(frame * 0.5 - i))}" r="8" fill="#b9a9b5"/>`;
+      out += `</g>`;
+    }
+    return out + `</g>`;
+  }
+
   function sparkles(cx, cy, local) {
     let out = '';
     for (let i = 0; i < 9; i++) {
@@ -105,7 +159,7 @@
     const c = (sc.captions || []).find((c) => frame >= c.start_frame && frame < c.end_frame);
     if (!c) return '';
     const k = back((frame - c.start_frame) / 4);
-    return `<g transform="translate(540 735) scale(${k})">` + outlined(c.text.toUpperCase(), 0, 0, 66, '#ffffff', { font: 'Nunito', weight: 900, stroke: 16, ls: 0 }) + `</g>`;
+    return `<g transform="translate(540 ${sc.texts ? 1560 : 735}) scale(${k})">` + outlined(c.text.toUpperCase(), 0, 0, 66, '#ffffff', { font: 'Nunito', weight: 900, stroke: 16, ls: 0 }) + `</g>`;
   }
 
   function cta(frame) {
@@ -138,7 +192,11 @@
     let body = (window.BACKGROUNDS[sc.bg] || window.BACKGROUNDS.studio)(t);
     let headX = 540, headY = 1040;
 
-    if (others.length === 0) {
+    if (sc.texts && others.length === 0) {
+      const scale = 0.95 * pop, x = 1080 - 760 * scale, y = H - 1100 * scale + 60;
+      body += placeChar(theo, { expression: theoEx, pose: sc.theo.pose, talk: talkOf('theo'), blink: blinkAt(frame, 1), t, bob: Math.sin(t * 2.2) * 6 }, x, y, scale);
+      headX = x + 400 * scale; headY = y + 400 * scale;
+    } else if (others.length === 0) {
       const scale = 1.25 * pop, x = 540 - 400 * scale, y = H - 1100 * scale;
       body += placeChar(theo, { expression: theoEx, pose: sc.theo.pose, talk: talkOf('theo'), blink: blinkAt(frame, 1), t, bob: Math.sin(t * 2.2) * 6 + talkOf('theo') * 8 }, x, y, scale);
       headX = x + 400 * scale; headY = y + 400 * scale;
@@ -156,6 +214,7 @@
       headX = tx + 400 * tScale; headY = ty + 400 * tScale;
     }
     if (sc.prop) body += prop(sc.prop, local, t);
+    if (sc.texts) body += phone(sc, frame);
     const fx = transformFX(sc, frame, headX, headY);
     body += fx.post;
     body += titleCard(frame) + creditBadge(frame) + captions(sc, frame) + cta(frame);

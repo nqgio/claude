@@ -1,15 +1,30 @@
 {
   "next_day": 1,
   "theo_state": {
-    "name": "Theo", "skin": "#f1c08f", "hair": "greasy_mess", "hair_color": "#3b2a1e",
-    "unibrow": true, "brows": "bushy", "acne": 3, "eye_bags": true, "glasses": "taped",
-    "nose_hair": true, "facial_hair": "patchy", "teeth": "yellow", "body": "chubby",
-    "outfit": "stained_hoodie", "smelly": true, "posture": "slouch", "accessories": []
+    "name": "Theo",
+    "skin": "#f1c08f",
+    "hair": "greasy_mess",
+    "hair_color": "#3b2a1e",
+    "unibrow": true,
+    "brows": "bushy",
+    "acne": 3,
+    "eye_bags": true,
+    "glasses": "taped",
+    "nose_hair": true,
+    "facial_hair": "patchy",
+    "teeth": "yellow",
+    "body": "chubby",
+    "outfit": "stained_hoodie",
+    "smelly": true,
+    "posture": "slouch",
+    "accessories": []
   },
   "plot_threads": {
-    "brett_bet": "Brett bet $500 Theo quits within a week.",
-    "nina": "Nina just moved back across the street. Theo hasn't talked to her yet.",
-    "deb": "Deb's deadline: Day 100."
+    "pixie": "Pixie booked her flight on Day 1. Arrives Day 100. Theo hasn't told her the truth about anything.",
+    "lies_made_true": "0/8",
+    "brett_bet": "Brett bet $500 Pixie is a catfish.",
+    "nina": "Nina moved in across the street on Day 1. Theo hasn't met her yet. (Secret: she is Pixie.)",
+    "deb": "Deb knows about Pixie and is way too excited."
   },
   "cameos_used": [],
   "episodes": []

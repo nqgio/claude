@@ -1,20 +1,42 @@
 {
   "series_title": "Theo Has 100 Days",
   "suggested_handle": "@theohas100days",
-  "logline": "Theo is 23, hasn't left his mom's basement in three years, and just got evicted by his own mother. He has 100 days to fix his face, his body, his life and get out. The comments decide everything he does.",
+  "logline": "Theo has been dating a girl he met in an online game for two years. They've never seen each other's faces. She just booked a flight to meet him in 100 days, and every single thing he ever told her about himself is a lie. The comments decide how he makes the lies true.",
   "premise": [
-    "Day 1: Theo's mom, Deb, slides a letter under his door: 'In 100 days this basement becomes my pottery studio. Get a job, get a life, get OUT. Love, Mom.'",
-    "The same morning, Nina, his childhood best friend he never stopped thinking about, moves back into the house across the street.",
-    "His annoyingly perfect cousin Brett publicly bets $500 that Theo won't last a week.",
-    "Theo can't make decisions on his own (that's how he ended up here), so he lets the internet decide: every day the top comment picks what he fixes or does next."
+    "For two years Theo (23, basement-dweller, never leaves the house) has been in an online relationship with 'Pixie', a girl he met in a co-op fantasy game. Cameras never on. They talk every night.",
+    "Day 1: Pixie texts: 'i booked my flight. 100 days. i finally get to meet you <3'.",
+    "Problem: Theo told her he's a 6'2\" firefighter with abs, who plays guitar, speaks French, cooks, has a dog and his own apartment. He is none of those things.",
+    "He has 100 days to make the lies true (or at least close enough). He can't decide anything himself, so the most-liked comment picks what he works on every day.",
+    "His mom Deb is thrilled ('a GIRL?!') and terrified. His cousin Brett bets $500 that Pixie is a catfish.",
+    "Meanwhile a girl named Nina just moved in across the street. She keeps showing up at the worst possible moments."
   ],
-  "end_goal": "By Day 100: a job, his own apartment, and the nerve to ask Nina to the end-of-summer block party. Brett loses the bet.",
+  "end_goal": "Day 100: Pixie lands. Theo has made as many lies true as he can, has moved out, and confesses the rest. Twist: Pixie is Nina. She lied too (she said she was a DJ in Tokyo), recognized Theo's voice weeks ago, and has been watching him change. They both drop the act. Brett loses the bet (technically she WAS a catfish, which starts a fight about the terms).",
   "arc": [
-    { "days": "1-20",   "phase": "THE BASEMENT ERA", "focus": "Hygiene and face: shower, acne, unibrow, nose hairs, teeth, glasses, haircut, the hoodie must die." },
-    { "days": "21-40",  "phase": "BUILDING THEO", "focus": "Body and style: first gym day, posture, running, cooking instead of pizza, new clothes, sleep schedule." },
-    { "days": "41-60",  "phase": "LEAVING THE HOUSE", "focus": "Social: talk to a stranger, rizz class, dance lessons, first party, apologize to an old friend, run into Nina." },
-    { "days": "61-80",  "phase": "GET A JOB", "focus": "Resume, interviews (with commenter cameos as interviewers), first job, first paycheck, Brett tries to sabotage." },
-    { "days": "81-100", "phase": "MOVE OUT", "focus": "Apartment hunting, saying goodbye to the basement, Deb gets emotional, the block party finale with Nina." }
+    {
+      "days": "1-20",
+      "phase": "THE PANIC",
+      "focus": "Fix the basics before anything: shower, acne, unibrow, nose hairs, teeth, glasses, haircut, burn the hoodie. Pixie notices he 'sounds different lately'."
+    },
+    {
+      "days": "21-45",
+      "phase": "MAKING LIES TRUE",
+      "focus": "Gym (abs), cooking, guitar, French. A near-miss video-call request he dodges. First Nina run-ins."
+    },
+    {
+      "days": "46-70",
+      "phase": "THE FIREFIGHTER",
+      "focus": "Volunteer fire training with commenter-cameo instructors, a dog adoption, Brett tries to expose him. Clues about Pixie pile up."
+    },
+    {
+      "days": "71-90",
+      "phase": "MOVE OUT",
+      "focus": "Job, first paycheck, apartment hunt, leaving the basement, Deb cries. Pixie goes quiet for 3 days (cliffhanger)."
+    },
+    {
+      "days": "91-100",
+      "phase": "ARRIVAL",
+      "focus": "Countdown. The confession plan. Day 100: the airport. The reveal."
+    }
   ],
   "tone": "Wholesome roast. Theo is the butt of the joke, but the audience is on his side. Never cruel, never body-shaming beyond cartoon gags, and every win is celebrated loudly.",
   "format": {
@@ -24,49 +46,150 @@
       "SETUP: 1-2 lines on what the comments chose (credit the commenter by @handle).",
       "THE ATTEMPT: Theo tries it, something goes slightly wrong (comedy beat).",
       "THE CHANGE: transformation flash, visible state change.",
+      "Optional: a Pixie text exchange on the phone screen (scene 'texts') for a cliffhanger or a laugh.",
       "PAYOFF: reaction, a running-gag callback (Deb, Brett, Nina, or the bet).",
       "CTA: 'Top comment decides Day N+1' + cameo invite."
     ],
     "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
   },
   "voices": {
-    "narrator": { "voice": "am_michael", "speed": 1.12 },
-    "theo":     { "voice": "am_puck",    "speed": 1.12 },
-    "deb":      { "voice": "af_sarah",   "speed": 1.08 },
-    "brett":    { "voice": "am_eric",    "speed": 1.1 },
-    "nina":     { "voice": "af_heart",   "speed": 1.08 },
-    "guest_m":  { "voice": "am_adam",    "speed": 1.1 },
-    "guest_f":  { "voice": "af_nova",    "speed": 1.1 }
+    "narrator": {
+      "voice": "am_michael",
+      "speed": 1.12
+    },
+    "theo": {
+      "voice": "am_puck",
+      "speed": 1.12
+    },
+    "deb": {
+      "voice": "af_sarah",
+      "speed": 1.08
+    },
+    "brett": {
+      "voice": "am_eric",
+      "speed": 1.1
+    },
+    "nina": {
+      "voice": "af_heart",
+      "speed": 1.08
+    },
+    "guest_m": {
+      "voice": "am_adam",
+      "speed": 1.1
+    },
+    "guest_f": {
+      "voice": "af_nova",
+      "speed": 1.1
+    },
+    "pixie": {
+      "voice": "af_bella",
+      "speed": 1.1
+    }
   },
   "cast": {
     "theo": {
       "role": "Main character. 23. Gamer, night owl, secretly funny and kind. Talks to his cat Gremlin. Says 'okay okay okay' when nervous.",
       "start_state": {
-        "name": "Theo", "skin": "#f1c08f", "hair": "greasy_mess", "hair_color": "#3b2a1e",
-        "unibrow": true, "brows": "bushy", "acne": 3, "eye_bags": true, "glasses": "taped",
-        "nose_hair": true, "facial_hair": "patchy", "teeth": "yellow", "body": "chubby",
-        "outfit": "stained_hoodie", "smelly": true, "posture": "slouch", "accessories": []
+        "name": "Theo",
+        "skin": "#f1c08f",
+        "hair": "greasy_mess",
+        "hair_color": "#3b2a1e",
+        "unibrow": true,
+        "brows": "bushy",
+        "acne": 3,
+        "eye_bags": true,
+        "glasses": "taped",
+        "nose_hair": true,
+        "facial_hair": "patchy",
+        "teeth": "yellow",
+        "body": "chubby",
+        "outfit": "stained_hoodie",
+        "smelly": true,
+        "posture": "slouch",
+        "accessories": []
       }
     },
     "deb": {
-      "role": "Theo's mom. Loving but DONE. Communicates through notes under the door and dramatic sighs. Secretly his biggest fan.",
-      "state": { "name": "Deb", "skin": "#e8b48a", "hair": "bun", "hair_color": "#8a8a8a", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "stylish", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "average", "outfit": "cardigan", "smelly": false, "posture": "straight" }
+      "role": "Theo's mom. Over the moon that he has a 'girlfriend', skeptical she exists, way too involved. Communicates through dramatic sighs and notes under the door. Secretly his biggest fan.",
+      "state": {
+        "name": "Deb",
+        "skin": "#e8b48a",
+        "hair": "bun",
+        "hair_color": "#8a8a8a",
+        "unibrow": false,
+        "brows": "groomed",
+        "acne": 0,
+        "eye_bags": false,
+        "glasses": "stylish",
+        "nose_hair": false,
+        "facial_hair": "none",
+        "teeth": "white",
+        "body": "average",
+        "outfit": "cardigan",
+        "smelly": false,
+        "posture": "straight"
+      }
     },
     "brett": {
-      "role": "Theo's cousin. Fitness influencer, says 'bro' a lot, made a $500 bet against Theo. Antagonist, but gets humbled.",
-      "state": { "name": "Brett", "skin": "#f3c9a0", "hair": "styled", "hair_color": "#e3b23c", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "none", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "fit", "outfit": "jacket", "outfit_color": "#d9d9d9", "smelly": false, "posture": "straight", "accessories": ["chain"] }
+      "role": "Theo's cousin. Fitness influencer, says 'bro' a lot. Bet $500 that Pixie is a catfish. Antagonist who slowly becomes an ally.",
+      "state": {
+        "name": "Brett",
+        "skin": "#f3c9a0",
+        "hair": "styled",
+        "hair_color": "#e3b23c",
+        "unibrow": false,
+        "brows": "groomed",
+        "acne": 0,
+        "eye_bags": false,
+        "glasses": "none",
+        "nose_hair": false,
+        "facial_hair": "none",
+        "teeth": "white",
+        "body": "fit",
+        "outfit": "jacket",
+        "outfit_color": "#d9d9d9",
+        "smelly": false,
+        "posture": "straight",
+        "accessories": [
+          "chain"
+        ]
+      }
     },
     "nina": {
-      "role": "Childhood best friend, just moved back across the street. Confident, into skateboarding and plants. The slow-burn payoff. Appears rarely so it means something.",
-      "state": { "name": "Nina", "skin": "#c98e62", "hair": "long", "hair_color": "#1f1611", "unibrow": false, "brows": "groomed", "acne": 0, "eye_bags": false, "glasses": "none", "nose_hair": false, "facial_hair": "none", "teeth": "white", "body": "average", "outfit": "tshirt", "outfit_color": "#2aa198", "smelly": false, "posture": "straight" }
+      "role": "Moved in across the street on Day 1. Confident, skateboards, keeps plants, always has headphones on. SECRET (never state it before Day 95): she IS Pixie. Appears every ~5-7 days, usually catching Theo mid-disaster. Keep her and Theo's scenes short and awkward.",
+      "state": {
+        "name": "Nina",
+        "skin": "#c98e62",
+        "hair": "long",
+        "hair_color": "#1f1611",
+        "unibrow": false,
+        "brows": "groomed",
+        "acne": 0,
+        "eye_bags": false,
+        "glasses": "none",
+        "nose_hair": false,
+        "facial_hair": "none",
+        "teeth": "white",
+        "body": "average",
+        "outfit": "tshirt",
+        "outfit_color": "#2aa198",
+        "smelly": false,
+        "posture": "straight"
+      }
+    },
+    "pixie": {
+      "role": "Theo's online girlfriend. Funny, chaotic, sends lots of '<3' and 'lmaooo'. NEVER shown on screen until the reveal; appears only as texts (scene 'texts') and, rarely, voice notes. Her avatar is a pink pixel heart.",
+      "text_style": "lowercase, short messages, playful, teases him. Signs off 'gn nerd <3'."
     }
   },
   "running_gags": [
-    "Deb's notes under the door, each more passive-aggressive.",
-    "The '$500 BET' tracker: Brett checks in, gets more nervous every week.",
-    "Gremlin the cat (off-screen) knocks something over at the worst moment.",
-    "Theo's 'okay okay okay' before every challenge.",
-    "A countdown in the corner: 'DAYS LEFT: N'."
+    "'LIES MADE TRUE: X/8' tracker.",
+    "The 6'2\" problem: a new absurd height attempt every so often.",
+    "Pixie's texts popping up at the worst moments.",
+    "Brett's '$500 SAYS SHE'S A CATFISH' check-ins.",
+    "Deb shouting down the stairs: 'Is that PIXIE?'",
+    "Gremlin the cat (off-screen) sabotages everything.",
+    "Theo's 'okay okay okay' before every challenge."
   ],
   "voting_rules": {
     "how": "Read comments on yesterday's YouTube Short and Instagram Reel. Rank by likes (YouTube likeCount, Instagram like_count). Ignore the channel's own comments.",
@@ -87,12 +210,27 @@
     "follow_up": "After publishing, reply to the cameo comment: 'You're in Day N, go see yourself 👀'."
   },
   "role_outfits": {
-    "doctor": "lab_coat", "dermatologist": "lab_coat", "dentist": "lab_coat", "nurse": "lab_coat", "optometrist": "lab_coat",
-    "barber": "apron", "stylist": "apron", "hairdresser": "apron",
-    "coach": "tracksuit", "trainer": "tracksuit", "personal trainer": "tracksuit", "dance teacher": "tracksuit",
-    "chef": "chef", "cook": "chef",
-    "cop": "uniform", "security": "uniform", "mail carrier": "uniform",
-    "interviewer": "suit", "boss": "suit", "landlord": "suit", "judge": "suit"
+    "doctor": "lab_coat",
+    "dermatologist": "lab_coat",
+    "dentist": "lab_coat",
+    "nurse": "lab_coat",
+    "optometrist": "lab_coat",
+    "barber": "apron",
+    "stylist": "apron",
+    "hairdresser": "apron",
+    "coach": "tracksuit",
+    "trainer": "tracksuit",
+    "personal trainer": "tracksuit",
+    "dance teacher": "tracksuit",
+    "chef": "chef",
+    "cook": "chef",
+    "cop": "uniform",
+    "security": "uniform",
+    "mail carrier": "uniform",
+    "interviewer": "suit",
+    "boss": "suit",
+    "landlord": "suit",
+    "judge": "suit"
   },
   "safety_rules": [
     "No sexual content, no self-harm or dangerous challenges, no real public figures, no hate or harassment, no medical claims beyond cartoon gags.",
@@ -108,11 +246,69 @@
     "Theo gets new glasses",
     "Theo gets a real haircut",
     "Theo burns the hoodie",
-    "Theo goes to the gym for the first time",
-    "Theo fixes his posture",
-    "Theo cooks a real meal",
-    "Theo cleans the basement",
+    "Theo tries to get taller (it goes badly)",
+    "Theo's first gym day (for the abs lie)",
+    "Theo tries cooking to back up the chef lie",
+    "Theo's first guitar lesson",
+    "Theo learns one sentence of French",
+    "Pixie asks for a video call and Theo panics",
     "Theo goes outside and touches grass",
-    "Theo says hi to Nina (and panics)"
-  ]
+    "Theo bumps into Nina while looking terrible"
+  ],
+  "the_lies": {
+    "description": "The spine of the series. Show a 'LIES MADE TRUE: X/8' tracker when one is completed. Comments pick which lie to tackle, or a glow-up step toward one.",
+    "lies": [
+      {
+        "lie": "I'm 6'2\"",
+        "status": "open",
+        "note": "Impossible. Running gag: increasingly ridiculous attempts (lifts, posture, hair volume, standing on things). Resolve with honesty at the end."
+      },
+      {
+        "lie": "I'm a firefighter",
+        "status": "open",
+        "note": "Path: volunteer fire training arc with commenter-cameo instructors."
+      },
+      {
+        "lie": "I have abs",
+        "status": "open",
+        "note": "Gym arc. Body goes chubby -> average -> fit across many days."
+      },
+      {
+        "lie": "I play guitar",
+        "status": "open",
+        "note": "Lessons, a commenter-teacher, writes Pixie a terrible song that gets better."
+      },
+      {
+        "lie": "I speak French",
+        "status": "open",
+        "note": "Learns phrases; mispronunciation gags."
+      },
+      {
+        "lie": "I'm a great cook",
+        "status": "open",
+        "note": "Kitchen disasters with Deb."
+      },
+      {
+        "lie": "I have a dog",
+        "status": "open",
+        "note": "Adopts a shelter dog (needs a dog renderer when it happens). Gremlin the cat is NOT happy."
+      },
+      {
+        "lie": "I have my own apartment",
+        "status": "open",
+        "note": "Final act: job + moving out."
+      }
+    ]
+  },
+  "secret_clues": {
+    "rule": "Plant one subtle Pixie=Nina clue every ~8-10 days, never more than one per episode, never confirm. Let comments theorize; if a theory comment is top-liked, Theo can dismiss it ('nah, Pixie lives in Tokyo').",
+    "clues": [
+      "Pixie mentions she 'just moved' and has 'boxes everywhere' (same week Nina moved in).",
+      "Pixie texts about a plant she's repotting; next episode Nina is carrying the same plant.",
+      "Pixie says she bailed on a skate session; Nina has a scraped elbow.",
+      "Pixie's game username is a pun on Nina's street address number.",
+      "Pixie texts 'nice haircut' the day Theo gets one, before he told her.",
+      "During a power outage on Theo's street, Pixie also 'lost wifi'."
+    ]
+  }
 }

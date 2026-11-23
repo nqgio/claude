@@ -79,6 +79,7 @@ before writing anything.
 - `others`: up to 2 characters on screen with Theo (`deb`, `brett`, `nina`, or cast keys). Cameo guests automatically get a name tag.
 - `expression`: neutral, happy, sad, shocked, determined, smug, angry. `pose`: idle, wave, flex.
 - `prop`: `letter` (more can be added in `render/player.js` → `prop()`).
+- `texts`: phone chat on screen, bubbles pop in one by one with a notification sound: `[{"from": "pixie", "text": "i booked my flight", "heart": true}, {"from": "theo", "text": "WHAT"}]`. Optional `texts_title` (default `pixie <3`). Keep each message under ~45 characters.
 - Traits for `transform.set` (see `DEFAULT_STATE` in `render/character.js`): `hair` (greasy_mess, buzz, fade, styled, curly_top, long, bun, bald),
   `hair_color`, `unibrow`, `brows` (bushy, groomed), `acne` 0–3, `eye_bags`, `glasses` (taped, none, stylish), `nose_hair`,
   `facial_hair` (patchy, none, mustache_fuzz, goatee), `teeth` (yellow, white, braces), `body` (chubby, average, fit),
