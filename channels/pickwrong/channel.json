@@ -1,0 +1,23 @@
+{
+  "name": "Pick Wrong",
+  "style": "horror",
+  "env_prefix": "PICKWRONG",
+  "music": "dark",
+  "music_gain": 0.5,
+  "intro": 0.9,
+  "scene_gap": 0.15,
+  "cta_len": 3.6,
+  "open_sfx": "boom",
+  "cta_sfx": "riser",
+  "templates": {
+    "title": "{title}: Part {part} \ud83d\ude28 #shorts #horror",
+    "caption": "{title}, Part {part}/{parts}\n\nYou decide what happens next. Comment A or B \ud83d\udc47 Most comments decide Part {next_part}.\n\n#horrorstory #scary #pov #story #fyp",
+    "vote": "\ud83d\uddf3\ufe0f PART {next_part} VOTE: comment A or B \ud83d\udc47\n\ud83c\udfad Want to be in the story? Comment who you'd be."
+  },
+  "tags": [
+    "horror story",
+    "scary",
+    "pov",
+    "choose your story"
+  ]
+}

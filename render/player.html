@@ -5,12 +5,16 @@
 @font-face { font-family: 'Nunito'; font-weight: 800; src: url('../assets/fonts/nunito-800.woff2') format('woff2'); }
 @font-face { font-family: 'Nunito'; font-weight: 900; src: url('../assets/fonts/nunito-900.woff2') format('woff2'); }
 html, body { margin: 0; background: #000; overflow: hidden; }
-#stage { width: 1080px; height: 1920px; }
+#stage { width: 1080px; height: 1920px; position: relative; }
+#stage canvas, #stage svg { position: absolute; left: 0; top: 0; }
 </style>
 <script src="character.js"></script>
 <script src="backgrounds.js"></script>
-<script src="player.js"></script>
+<script src="players/common.js"></script>
+<script>
+  const style = new URLSearchParams(location.search).get('style') || 'theo';
+  document.write(`<script ${style === 'blocky' ? 'type="module"' : ''} src="players/${style}.js"><\/script>`);
+</script>
 </head><body><div id="stage"></div>
-<!-- preload fonts -->
-<div style="position:absolute;opacity:0;font-family:Anton">a</div><div style="position:absolute;opacity:0;font-family:Nunito;font-weight:900">a</div>
+<div style="position:absolute;opacity:0;font-family:Anton">a</div><div style="position:absolute;opacity:0;font-family:Nunito;font-weight:900">a</div><div style="position:absolute;opacity:0;font-family:Inter;font-weight:800">a</div>
 </body></html>

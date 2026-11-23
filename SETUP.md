@@ -1,12 +1,13 @@
-# Setup: Theo Has 100 Days
+# Setup: five channels
 
-Everything that makes the videos is already built and works (see `episodes/day-001`). What's left is
-connecting your accounts so Claude can post and read comments. Doing it once takes about an hour, mostly
+Everything that makes the videos is already built and works (each `channels/<name>/episodes/day-001`).
+What's left is connecting your accounts so Claude can post and read comments. There are five channels:
+Theo Has 100 Days, Pick Wrong, The Model Town, Last Exit and In This Town. Set up one at a time if you like. Doing it once takes about an hour, mostly
 waiting on the platforms. **You can start with just one platform**: anything that isn't set up is skipped.
 
 | Step | Time | Needed for |
 |---|---|---|
-| 1. Create the accounts | 10 min | everything |
+| 1. Create the accounts (per channel) | 10 min | everything |
 | 2. YouTube API | 20 min (+ audit wait) | posting Shorts, **reading votes**, replying |
 | 3. Instagram API | 15 min | posting Reels, reading votes, replying |
 | 4. TikTok API (optional) | 15 min (+ review wait) | sending videos to your TikTok drafts |
@@ -77,20 +78,36 @@ TikTok has **no API for reading comments**, so votes come from YouTube + Instagr
 
 ## 5. Put the keys in the cloud environment
 
-In the Claude app, open this session's **cloud environment menu** (title bar) → **Edit** → **Environment variables**, and add whichever you have:
+**Each channel's account keys get the channel's prefix** so they can never post to the wrong account:
 
+| Channel | Prefix |
+|---|---|
+| Theo Has 100 Days | `THEO_` |
+| Pick Wrong | `PICKWRONG_` |
+| The Model Town | `MODELTOWN_` |
+| Last Exit | `LASTEXIT_` |
+| In This Town | `INTHISTOWN_` |
+
+The app-level values (`YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`) can be shared
+without a prefix, because one Google project and one TikTok app can serve all channels. Run `youtube_auth.py` once per channel,
+signing in to that channel's Google account / brand channel each time, and generate one Instagram token per Instagram account.
+
+Example for Theo + Pick Wrong:
 ```
-YT_CLIENT_ID=...
-YT_CLIENT_SECRET=...
-YT_REFRESH_TOKEN=...
-IG_USER_ID=...
-IG_ACCESS_TOKEN=...
-TIKTOK_CLIENT_KEY=...
-TIKTOK_CLIENT_SECRET=...
-TIKTOK_REFRESH_TOKEN=...
+YT_CLIENT_ID=...            (shared)
+YT_CLIENT_SECRET=...        (shared)
+THEO_YT_REFRESH_TOKEN=...
+THEO_IG_USER_ID=...
+THEO_IG_ACCESS_TOKEN=...
+PICKWRONG_YT_REFRESH_TOKEN=...
+PICKWRONG_IG_USER_ID=...
+PICKWRONG_IG_ACCESS_TOKEN=...
 ```
 
-Optional: `YT_PRIVACY=private` (for test uploads), `TIKTOK_MODE=direct`.
+### Where to put them
+
+In the Claude app, open this session's **cloud environment menu** (title bar) → **Edit** → **Environment variables**, and add them.
+Optional per channel: `<PREFIX>_YT_PRIVACY=private` (test uploads), `<PREFIX>_TIKTOK_MODE=direct`.
 
 **Use a personal environment only** (Claude set one up for this project). Anyone who can use an environment can read its variables.
 **Never paste these keys into the chat.**
@@ -100,8 +117,8 @@ which tests each login without posting anything.
 
 ## 6. Go live
 
-Tell Claude what time you want the daily episode (e.g. "every day at 4pm my time"). Claude creates a scheduled task that
-runs the daily runbook in `CLAUDE.md`:
+Tell Claude what times you want each channel's daily episode (spread them out, e.g. 11am, 1pm, 4pm, 6pm, 8pm your time).
+Claude creates one scheduled task per channel, each running the daily runbook in `CLAUDE.md`:
 
 > read yesterday's comments → pick the winner + cameo guests → write the episode → render → post everywhere →
 > post the "what should Theo do tomorrow?" comment → reply to the winner and the cameo guests → commit the story → send you a summary.

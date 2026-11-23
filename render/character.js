@@ -43,7 +43,7 @@ function torsoPath(body) {
 }
 
 const OUTFIT_COLORS = { stained_hoodie: '#7d8b69', tshirt: '#3d7bd9', jacket: '#2f3b52', gym: '#e04848', suit: '#23262e',
-  lab_coat: '#fbfbfb', apron: '#2b2b2b', tracksuit: '#1f7a4d', chef: '#ffffff', cardigan: '#c9708a', uniform: '#2c4a8a' };
+  lab_coat: '#fbfbfb', hoodie: '#2b2d33', apron: '#2b2b2b', tracksuit: '#1f7a4d', chef: '#ffffff', cardigan: '#c9708a', uniform: '#2c4a8a' };
 
 function drawOutfit(s, pose) {
   const c = s.outfit_color || OUTFIT_COLORS[s.outfit] || '#777';
@@ -67,6 +67,10 @@ function drawOutfit(s, pose) {
       out += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#6b5326" opacity="0.55"/>`;
     for (const [x, y] of [[330, 800], [480, 780], [260, 900], [560, 860], [410, 900]])
       out += `<rect x="${x}" y="${y}" width="9" height="7" rx="2" fill="#d9a441" stroke="${INK}" stroke-width="2" transform="rotate(${x % 40} ${x} ${y})"/>`;
+  } else if (s.outfit === 'hoodie') {
+    out += `<path d="M 275 690 Q 400 800 525 690 Q 470 740 400 745 Q 330 740 275 690 Z" fill="${shade(c, -18)}" stroke="${INK}" stroke-width="6"/>`;
+    out += `<path d="M 368 745 L 362 850 M 432 745 L 438 850" stroke="#ddd" stroke-width="6" stroke-linecap="round"/>`;
+    out += `<path d="M 270 980 Q 400 1010 530 980 L 530 1100 L 270 1100 Z" fill="${shade(c, -12)}" stroke="${INK}" stroke-width="6"/>`;
   } else if (s.outfit === 'tshirt') {
     out += `<path d="M 300 688 Q 400 760 500 688" fill="none" stroke="${INK}" stroke-width="${SW}"/>`;
   } else if (s.outfit === 'jacket') {
@@ -160,6 +164,13 @@ function drawHairFront(s) {
         `<circle cx="400" cy="150" r="58" fill="${c}" stroke="${INK}" stroke-width="${SW}"/>`;
     case 'long':
       return `<path d="M 232 330 Q 225 185 400 175 Q 575 185 568 330 Q 520 240 400 236 Q 280 240 232 330 Z" fill="${c}" stroke="${INK}" stroke-width="${SW}"/>`;
+    case 'beanie':
+      return `<path d="M 226 330 Q 215 150 400 140 Q 585 150 574 330 Z" fill="${c}" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>` +
+        `<rect x="215" y="295" width="370" height="58" rx="22" fill="${shade(c, -25)}" stroke="${INK}" stroke-width="${SW}"/>` +
+        [0, 1, 2, 3, 4, 5].map((i) => `<path d="M ${262 + i * 55} 303 L ${262 + i * 55} 345" stroke="${shade(c, -50)}" stroke-width="5"/>`).join('');
+    case 'cap':
+      return `<path d="M 232 320 Q 225 170 400 165 Q 575 170 568 320 Z" fill="${c}" stroke="${INK}" stroke-width="${SW}"/>` +
+        `<path d="M 380 300 Q 520 285 640 330 Q 600 350 380 335 Z" fill="${shade(c, -30)}" stroke="${INK}" stroke-width="${SW}"/>`;
     case 'bald':
       return `<path d="M 300 210 Q 360 190 420 195" stroke="#fff" stroke-width="10" fill="none" opacity="0.5" stroke-linecap="round"/>`;
     case 'chef_hat':
@@ -221,6 +232,12 @@ function drawGlasses(s) {
     return `<rect x="280" y="335" width="105" height="80" rx="34" fill="none" stroke="#111" stroke-width="9"/>` +
       `<rect x="415" y="335" width="105" height="80" rx="34" fill="none" stroke="#111" stroke-width="9"/>` +
       `<path d="M 385 365 Q 400 352 415 365" stroke="#111" stroke-width="8" fill="none"/>`;
+  }
+  if (s.glasses === 'shades') {
+    return `<path d="M 268 340 L 392 340 Q 392 410 330 412 Q 272 410 268 340 Z" fill="#111" stroke="${INK}" stroke-width="7"/>` +
+      `<path d="M 408 340 L 532 340 Q 528 410 470 412 Q 408 410 408 340 Z" fill="#111" stroke="${INK}" stroke-width="7"/>` +
+      `<path d="M 392 350 L 408 350 M 268 345 L 232 335 M 532 345 L 568 335" stroke="${INK}" stroke-width="8"/>` +
+      `<path d="M 290 355 L 320 385" stroke="#fff" stroke-width="6" opacity="0.5" stroke-linecap="round"/>`;
   }
   return '';
 }

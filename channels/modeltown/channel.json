@@ -1,0 +1,23 @@
+{
+  "name": "The Model Town",
+  "style": "diorama",
+  "env_prefix": "MODELTOWN",
+  "music": "calm",
+  "music_gain": 0.45,
+  "intro": 0.4,
+  "scene_gap": 0.12,
+  "cta_len": 3.0,
+  "open_sfx": "click",
+  "cta_sfx": "ding",
+  "templates": {
+    "title": "{topic}: {progress} #shorts",
+    "caption": "{topic}: {progress}\n\nThe systems around you are designed. Here's how. Follow for the next rule.\nComment which system we should break down next \ud83d\udc47\n\n#psychology #explained #howitworks #learnontiktok #fyp",
+    "vote": "\ud83d\udcac Which system should the Model Town break down next? Most-liked comment picks \ud83d\udc47"
+  },
+  "tags": [
+    "psychology",
+    "explained",
+    "how it works",
+    "manipulation"
+  ]
+}

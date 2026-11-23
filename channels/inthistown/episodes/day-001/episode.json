@@ -1,0 +1,280 @@
+{
+  "day": 1,
+  "part": 1,
+  "title": "The Streetlights",
+  "time": "day",
+  "summary": "Rule: be home before the streetlights come on. Milo, new in town, ignores it; his phone dies 3 blocks away as the lights come on.",
+  "characters": {
+    "milo": {
+      "skin": "#e8b98a",
+      "shirt": "#e8833a",
+      "pants": "#2a9d8f",
+      "hair": "short",
+      "hair_color": "#3b2a1e",
+      "scarf": "#c0392b"
+    },
+    "neighbor": {
+      "skin": "#e8c39e",
+      "shirt": "#7a8ea3",
+      "pants": "#3a3a3a",
+      "hair": "bald_gray",
+      "hair_color": "#d0d0d0",
+      "glasses": true
+    }
+  },
+  "sign_lines": [
+    "BE HOME",
+    "BEFORE THE",
+    "LIGHTS COME ON"
+  ],
+  "scenes": [
+    {
+      "time": "day",
+      "shot": {
+        "cam": [
+          12,
+          15,
+          9
+        ],
+        "cam_to": [
+          7,
+          11,
+          8.5
+        ],
+        "look": [
+          -8,
+          2,
+          3
+        ],
+        "look_to": [
+          -4,
+          2.5,
+          3.5
+        ]
+      },
+      "actors": {
+        "milo": {
+          "pos": [
+            -12,
+            0,
+            4.5
+          ],
+          "to": [
+            0,
+            0,
+            4.5
+          ],
+          "face": 90,
+          "walk": true,
+          "expression": "smile"
+        }
+      },
+      "say": "In this town, there's only *one* rule."
+    },
+    {
+      "time": "day",
+      "shot": {
+        "cam": [
+          6,
+          3.9,
+          2.5
+        ],
+        "cam_to": [
+          6,
+          3.7,
+          -1.2
+        ],
+        "look": [
+          6,
+          3.6,
+          -7.5
+        ]
+      },
+      "say": "Be home *before* the streetlights come on."
+    },
+    {
+      "time": "day",
+      "shot": {
+        "follow": {
+          "id": "milo",
+          "offset": [
+            6,
+            4.6,
+            10
+          ],
+          "look_offset": [
+            0.8,
+            3.3,
+            0
+          ]
+        }
+      },
+      "actors": {
+        "milo": {
+          "pos": [
+            -6,
+            0,
+            5
+          ],
+          "to": [
+            8,
+            0,
+            5
+          ],
+          "face": 90,
+          "walk": true,
+          "expression": "smile"
+        }
+      },
+      "say": "Milo just moved here. He thought it was a *joke*."
+    },
+    {
+      "time": "day",
+      "speaker": "neighbor",
+      "shot": {
+        "cam": [
+          17.5,
+          5.4,
+          -4
+        ],
+        "cam_to": [
+          16.8,
+          5.1,
+          -6
+        ],
+        "look": [
+          16,
+          4.6,
+          -11.5
+        ]
+      },
+      "actors": {
+        "neighbor": {
+          "pos": [
+            16,
+            0,
+            -11.5
+          ],
+          "face": 5,
+          "expression": "suspicious"
+        }
+      },
+      "say": "Kid. Nobody who stays out comes back the *same*."
+    },
+    {
+      "time": "dusk",
+      "lamps": "flicker",
+      "shot": {
+        "cam": [
+          45,
+          6.2,
+          11.5
+        ],
+        "cam_to": [
+          43.5,
+          5.6,
+          10.5
+        ],
+        "look": [
+          40,
+          3.2,
+          5
+        ]
+      },
+      "actors": {
+        "milo": {
+          "pos": [
+            40,
+            0,
+            5
+          ],
+          "face": 30,
+          "pose": "phone",
+          "expression": "worried"
+        }
+      },
+      "sfx": [
+        {
+          "name": "click",
+          "at": 0.8
+        },
+        {
+          "name": "click",
+          "at": 1.6
+        }
+      ],
+      "say": "Tonight, Milo's phone *died*. Three blocks from home."
+    },
+    {
+      "time": "dusk",
+      "lamps": "off",
+      "lamps_on_at": 1.0,
+      "shot": {
+        "cam": [
+          40,
+          5.3,
+          10.5
+        ],
+        "cam_to": [
+          40,
+          5.0,
+          9.2
+        ],
+        "look": [
+          40,
+          4.6,
+          5
+        ]
+      },
+      "actors": {
+        "milo": {
+          "pos": [
+            40,
+            0,
+            5
+          ],
+          "face": 0,
+          "expression": "shocked",
+          "pose": "scared"
+        }
+      },
+      "sfx": [
+        {
+          "name": "boom",
+          "at": 1.0
+        },
+        {
+          "name": "heartbeat",
+          "at": 1.6
+        }
+      ],
+      "say": "And the streetlights just came *on*."
+    }
+  ],
+  "cta": {
+    "question_lines": [
+      "WHAT SHOULD",
+      "MILO DO?"
+    ],
+    "options": [
+      {
+        "label": "Run home",
+        "color": "#2f9e6b",
+        "keywords": [
+          "run",
+          "home",
+          "a"
+        ]
+      },
+      {
+        "label": "Hide",
+        "color": "#e8384f",
+        "keywords": [
+          "hide",
+          "b"
+        ]
+      }
+    ],
+    "prompt": "COMMENT RUN OR HIDE"
+  }
+}

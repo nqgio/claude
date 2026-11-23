@@ -1,4 +1,5 @@
 models/
+channels/*/episodes/*/out/
 episodes/*/out/
 __pycache__/
 *.pyc

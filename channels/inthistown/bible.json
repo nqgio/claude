@@ -1,0 +1,75 @@
+{
+  "series_title": "In This Town",
+  "suggested_handle": "@inthistown.stories",
+  "logline": "Animated 3D blocky-character stories from a snowy little town where every story starts with a rule. Break the rule, find out why it exists. 3-5 parts per story; the comments decide what the character does next.",
+  "format": {
+    "length_seconds": "20-30",
+    "story_shape": "Part 1 states the town rule + why someone ignores it + the moment it goes wrong + choice. Middle parts escalate based on votes. Final part reveals what the rule was protecting people from, then 'In this town...' teases the next rule.",
+    "narration_style": "Storyteller, eerie but punchy. Opens with 'In this town...'. Short sentences. One keyword per sentence in *asterisks*.",
+    "visual_rules": "Original blocky characters only. Never use the Roblox name, logo, fonts or assets in videos or captions. Hashtags can describe the style (#blocky #animation #story)."
+  },
+  "voices": {
+    "_note": "Narrator: am_echo + am_puck. Neighbor: deep and old. Never add echo/reverb to voices.",
+    "narrator": {
+      "voice": "am_echo:0.7,am_puck:0.3",
+      "speed": 1.12
+    },
+    "neighbor": {
+      "voice": "am_onyx:0.5,am_adam:0.5",
+      "speed": 1.0
+    },
+    "milo": {
+      "voice": "am_liam",
+      "speed": 1.1
+    },
+    "guest_m": {
+      "voice": "am_adam:0.7,am_liam:0.3",
+      "speed": 1.08
+    },
+    "guest_f": {
+      "voice": "af_nova",
+      "speed": 1.08
+    }
+  },
+  "cast": {
+    "milo": {
+      "skin": "#e8b98a",
+      "shirt": "#e8833a",
+      "pants": "#2a9d8f",
+      "hair": "short",
+      "hair_color": "#3b2a1e",
+      "scarf": "#c0392b"
+    },
+    "neighbor": {
+      "skin": "#e8c39e",
+      "shirt": "#7a8ea3",
+      "pants": "#3a3a3a",
+      "hair": "bald_gray",
+      "hair_color": "#d0d0d0",
+      "glasses": true
+    }
+  },
+  "voting_rules": {
+    "how": "Each comment = one vote for the first option it names (keyword/label/letter). Most-liked comment breaks ties. Announce the result in the first line of the next part.",
+    "cameos": "Commenters asking to appear become townspeople (blocky avatar colors derived from their handle) with their handle on a sign or mailbox. Same safety rules as the other channels."
+  },
+  "scene_types": {
+    "shot": "{cam:[x,y,z], cam_to, look:[x,y,z], look_to, fov}. Street runs along x at z=0; north houses at z=-17 (porches ~z=-12); south houses at z=17; lamps at z=-7.5 every 16 units from x=4; sign at (6,0,-7.5). Use {follow: {id, offset:[dx,y,dz], look_offset:[dx,y,dz]}} for tracking shots: portrait frames are narrow, so a moving character drifts out of a fixed shot fast. Keep cameras out of houses: north houses occupy z -21..-13, south houses z 13..21 (x = 8+16n +-5.5). Safe camera band: z between -12 and 12.",
+    "actors": "{id: {pos:[x,0,z], to:[x,0,z], face: deg (0 = facing +z/camera south, 90 = +x), walk: bool, pose: phone|scared|point|wave, expression: neutral|smile|worried|shocked|angry|suspicious, look: head turn deg}}",
+    "time": "day | dusk | night",
+    "lamps": "off | on | flicker",
+    "lamps_on_at": "seconds into scene when lamps snap on",
+    "flash": "white flash",
+    "shake": "camera shake"
+  },
+  "safety_rules": [
+    "Eerie, not gory. No real people/places. Kid-safe scares."
+  ],
+  "story_backlog": [
+    "THE STREETLIGHTS: be home before the lights come on.",
+    "THE MAILBOX: never open mail addressed to someone who lived here before you.",
+    "THE SNOWMAN: if a snowman appears in your yard overnight, don't knock it down.",
+    "THE BELL: when the church bell rings 13 times, don't look out the window.",
+    "THE NEW KID: if someone you don't remember says they've always lived here, agree with them."
+  ]
+}

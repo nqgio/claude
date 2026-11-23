@@ -1,0 +1,50 @@
+{
+  "series_title": "Pick Wrong",
+  "suggested_handle": "@pickwrong.stories",
+  "logline": "Short horror stories told to YOU, in 4 parts. Every part ends on a choice. The comments choose. Pick wrong and the story gets worse.",
+  "format": {
+    "parts_per_story": 4,
+    "length_seconds": "20-30",
+    "pov": "Second person, present/past tense: 'Every night at 3:17, your doorbell rings.'",
+    "structure": [
+      "Part 1: the hook + the rule/the wrongness + first choice.",
+      "Part 2: opens with the vote result ('62% of you opened the door.'), consequence, escalation, second choice.",
+      "Part 3: the twist (something the viewer assumed is wrong), third choice.",
+      "Part 4 (FINAL): the ending caused by the votes, then a quick 'what if' montage of what the other choices would have done, then tease the next story."
+    ],
+    "narration_style": "Calm, close, creepy. Short sentences. One keyword per sentence wrapped in *asterisks* (shown in green). End each part on dread.",
+    "caption_rule": "Mark exactly one keyword per sentence with *word*."
+  },
+  "voices": {
+    "_note": "Deep, close horror narrator: blend of am_fenrir (expressive) with am_onyx (deep). Never add echo/reverb to voices.",
+    "narrator": { "voice": "am_fenrir:0.6,am_onyx:0.4", "speed": 1.05 },
+    "visitor": { "voice": "am_onyx", "speed": 0.95 },
+    "guest_m": { "voice": "am_adam:0.7,am_liam:0.3", "speed": 1.05 },
+    "guest_f": { "voice": "af_nova", "speed": 1.05 }
+  },
+  "voting_rules": {
+    "how": "Each comment counts as one vote for the first option it clearly names (option keyword, label, or the letter A/B). Most-liked comments break ties. Report the split as a percentage at the start of the next part.",
+    "no_votes": "If fewer than 10 votes, pick the option that makes the better story and say 'the few of you who voted chose...'.",
+    "cameos": "If a commenter asks to be in the story ('I'd be the neighbor'), they can appear as a background character named by their handle on a sign/phone screen. Same safety rules as the other channels."
+  },
+  "scene_types": {
+    "bg": "bedroom | hallway | door | doorcam | black (add new ones in render/players/horror.js as stories need them)",
+    "figure": "{pose: stand|phone|walk|scared, x, y, s, hood}: the viewer's stick-figure self",
+    "visitor": "doorcam: none|far|close|you ; door: any value shows feet under the door",
+    "sfx": "doorbell, knock, heartbeat, boom, glitch, whoosh, tick, riser, click",
+    "flash": "true = white flash at scene start (jump cut)"
+  },
+  "safety_rules": [
+    "Creepy, not gory. No graphic violence, no self-harm, no real people or places, nothing sexual.",
+    "No content targeting any group. Monsters are original."
+  ],
+  "story_backlog": [
+    "THE 3:17 VISITOR: your doorbell rings at 3:17 every night; tonight the camera shows someone wearing your clothes.",
+    "THE SECOND SHADOW: your shadow starts moving a half-second late.",
+    "UNIT 4B: the apartment listing was too cheap. The previous tenant left a list of rules on the fridge.",
+    "THE LAST BUS: the night bus driver says 'this is your stop' at a street that doesn't exist.",
+    "MOM'S VOICEMAIL: you get a voicemail from your mom telling you not to come home. She's in the kitchen.",
+    "THE GAME CABINET: an arcade machine with your initials already on the high score list.",
+    "THE BABYSITTING JOB: the parents left one rule: don't answer if the kid calls from upstairs. The kid is in your lap."
+  ]
+}

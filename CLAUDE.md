@@ -1,60 +1,67 @@
-# Theo Has 100 Days — automated Shorts channel
+# Five automated Shorts channels, one engine
 
-A daily cartoon series made entirely in code: the character, backgrounds and animation are SVG
-(`render/`), the voices come from a local open-source TTS model (Kokoro, runs offline), and the music
-and sound effects are synthesized in `scripts/build.py`. No image/video generation services.
+Daily animated series made entirely in code: characters, backgrounds and animation are SVG or three.js
+(`render/`), voices come from a local open-source TTS model (Kokoro, offline), music and sound effects
+are synthesized in `scripts/build.py`. No image/video generation services.
 
-Read `series/bible.json` (story, cast, rules) and `series/story.json` (where the story is now)
-before writing anything.
+| Channel | Folder | Style | Format |
+|---|---|---|---|
+| Theo Has 100 Days | `channels/theo` | `theo` (flat cartoon) | Daily glow-up; top comment picks the task; commenter cameos |
+| Pick Wrong | `channels/pickwrong` | `horror` (dark flat, stick figure) | 4-part horror stories, A/B vote each part |
+| The Model Town | `channels/modeltown` | `diorama` (town under glass + giant hand) | "N rules" explainers, one rule per day |
+| Last Exit | `channels/lastexit` | `crime` (night city, stats HUD) | Ongoing second-person crime saga, A/B vote daily |
+| In This Town | `channels/inthistown` | `blocky` (3D, three.js) | Town-rule mini stories, vote on what the character does |
 
-## Layout
+Each channel folder: `channel.json` (style, music, credential prefix, title/caption templates),
+`bible.json` (premise, voices, rules, scene vocabulary, backlog: **read it before writing**),
+`story.json` (live state + every published episode), `episodes/day-NNN/` (episode.json, inbox.json, published.json, out/).
+
+## Shared tools
 
 | Path | What |
 |---|---|
-| `series/bible.json` | Series bible: premise, arc, cast, voices, voting rules, cameo rules, safety rules, backlog |
-| `series/story.json` | Live state: `next_day`, Theo's current look (`theo_state`), plot threads, every published episode + platform IDs |
-| `episodes/day-NNN/episode.json` | The script for one day (you write this) |
-| `episodes/day-NNN/inbox.json` | Ranked comments + cameo requests (written by `fetch_comments.py`) |
-| `episodes/day-NNN/out/` | Render output (git-ignored). `final.mp4` is the video |
-| `render/character.js` | The character renderer. All traits in `DEFAULT_STATE`; `guestState()` makes cameo guests |
-| `render/backgrounds.js` | Scenes: basement, bathroom, barber, gym, kitchen, street, doctor_office, studio |
-| `scripts/build.py` | episode.json → voices → timeline → frames → mixed MP4 (`--preview` = 3 stills only) |
-| `scripts/publish.py` | Upload to YouTube / Instagram / TikTok, post vote comment, reply to winner + cameos, advance story.json |
-| `scripts/fetch_comments.py` | Pull + rank comments on the last episode, flag cameo requests |
+| `scripts/build.py <episode dir> [--preview]` | voices → timeline → frames → mixed MP4. `--preview` renders stills (hook, one per scene, CTA) |
+| `scripts/publish.py <episode dir> [--dry-run]` | upload to the channel's YouTube/Instagram/TikTok, post vote comment, reply to winner + cameos, advance story.json |
+| `scripts/fetch_comments.py <channel>` | rank comments, flag cameo requests, tally A/B votes → next day's inbox.json |
+| `scripts/check_setup.py` | verify tools + every channel's logins (read-only) |
+| `render/players/<style>.js` | one renderer per style; `render/character.js` (flat characters), `render/backgrounds.js` (Theo) |
 
-## DAILY RUNBOOK (the scheduled task runs this)
+## Writing episodes (all channels)
+- `say`: narration. Wrap ONE keyword per sentence in `*asterisks*` → highlighted in captions (green/yellow per style).
+- Narration style: short punchy sentences, rhetorical questions, exclamations; it makes the TTS sound more alive.
+- `speaker`: `narrator` or a voice key from the bible (`theo`, `deb`, `stranger`, `neighbor`, guest keys...).
+- `sfx`: `["boom", {"name": "knock", "at": 1.2, "gain": 0.8}]`, available: pop ding poof sparkle whoosh boom knock heartbeat stamp tick doorbell glitch riser click.
+- `hold`: extra seconds after the line. `flash`: white cut. `zoom`: push-in amount.
+- `pronounce`: spoken-only respellings. The build prints `pronunciation check` lines for words like lives/live/read/lead/close.
+  Read the phonemes (`lˈaɪvz` = "life-s", `lˈɪvz` = "livs"); reword ("Still lives") or respell if wrong.
+- `cta` for vote channels: `{"question_lines": [...], "options": [{"label", "color", "keywords": [...]}], "prompt"}`. Keywords drive vote counting.
+- Scene vocabulary per style is in each bible's `scene_types`. Need something new (a room, prop, pose)? Add it to the style's player, preview it, then use it.
+- Keep every channel's stories original. Never use another channel's characters, names or story beats.
 
-1. **Setup**: `bash scripts/bootstrap.sh && python3 scripts/check_setup.py`. If no platform is configured, stop and report.
-2. **Read votes**: `python3 scripts/fetch_comments.py` → read `episodes/day-NNN/inbox.json` (NNN = `story.next_day`).
-   - Day 1 has no inbox: the episode already exists.
-3. **Pick the winner** using `bible.voting_rules` + `bible.safety_rules`:
-   - Go down `top` by likes; take the first comment that's a doable task/plot choice, safe, kind, and not a repeat
-     (check `story.episodes[].changes` and titles).
-   - Off-theme but funny suggestions can be bent to fit ("fight a goose" → Theo gets chased by a goose on his first run).
-   - Nothing usable → next `bible.backlog_ideas` item that hasn't happened ("Gremlin picked today").
-4. **Pick cameos** using `bible.cameo_rules`: from `cameo_requests` (only `handle_ok: true`), choose up to 2 whose role
-   fits the episode (a doctor for skin, a barber for a haircut…). Also count the winner if they asked for a role.
-   Never reuse a handle from `story.cameos_used` in back-to-back episodes.
-5. **Write `episodes/day-NNN/episode.json`** (schema below). Rules:
-   - 4–6 scenes, 20–35 s total (about 60–85 spoken words). Hook in the first line.
-   - Scene 1 credits the winner by handle, spoken naturally ("Top comment from sleepy frog said…" — say handles as words, no @ or digits soup).
-   - At least one `transform` that visibly changes Theo (unless it's a pure plot day, then use a big reaction/pose).
-   - Keep continuity: `transform.set` only changes traits; everything else carries over from `story.theo_state`.
-   - Use a running gag or plot thread (Deb, Brett's bet, Nina, Gremlin) at least every other day.
-   - Add a one-line `summary` (used as story memory for future days).
-6. **Pronunciation**: the build prints `pronunciation check` lines for words like lives/live/read/lead/close. Read the phonemes (e.g. `lˈaɪvz` = "life-s", `lˈɪvz` = "livs"). If one is wrong, reword or add `"pronounce": {"Lives": "Livs"}` to that scene.
-7. **Preview**: `python3 scripts/build.py episodes/day-NNN --preview`, look at the 3 stills (Read the PNGs). Fix anything overlapping or unreadable.
-8. **Render**: `python3 scripts/build.py episodes/day-NNN` (≈1.5 min).
-9. **Publish**: `python3 scripts/publish.py episodes/day-NNN`. It is idempotent: if a step fails, fix it and re-run;
-   finished steps are skipped. It advances `story.json` only if at least one platform succeeded.
-10. **Commit** `series/story.json` + `episodes/day-NNN/{episode.json,inbox.json,published.json}` and push.
-11. **Hand-off file**: if TikTok isn't configured (or is in draft mode), or YouTube uploads are still audit-locked
-    (`YT_PRIVACY` unset and the user said the audit is pending), send `episodes/day-NNN/out/final.mp4` to the user with
-    SendUserFile (`status: proactive`) so they can post it from their phone. If they upload to YouTube by hand, record it later with
-    `python3 scripts/publish.py episodes/day-NNN --youtube-id <id>`.
-12. **Report** in 3–5 lines: winning comment, cameos, links, anything that failed, and token expiry warnings.
+## DAILY RUNBOOK (one scheduled task per channel runs this with its channel name)
 
-### episode.json schema
+1. `bash scripts/bootstrap.sh && python3 scripts/check_setup.py`. If the channel has no platform configured, stop and report.
+2. `python3 scripts/fetch_comments.py <channel>` → read `channels/<channel>/episodes/day-NNN/inbox.json` (NNN = story.next_day).
+   Day 1 already exists for every channel: just build + publish it.
+3. Decide what happens using the bible's `voting_rules` + `safety_rules`:
+   - Theo: most-liked usable comment = today's task (see Theo notes below).
+   - Vote channels (pickwrong, lastexit, inthistown): `inbox.choice_tally` decides; open with the result ("62% of you opened the door" / a stamp).
+   - Model Town: next rule of the current topic; on a topic's last day, top comment picks the next topic.
+   - Cameos: from `cameo_requests` with `handle_ok: true`, max 2, only where a role fits.
+4. Write `episodes/day-NNN/episode.json` following the bible + the previous episode's format. Update the story arc as needed. Add `summary`.
+5. `python3 scripts/build.py <ep> --preview` → Read the stills. Fix overlaps, off-screen characters (3D: cameras inside houses or subjects outside the narrow portrait frame), unreadable captions.
+6. `python3 scripts/build.py <ep>` (2D ≈ 1.5 min, 3D ≈ 9 min).
+7. `python3 scripts/publish.py <ep>`. It is idempotent; re-run after fixing failures. It advances story.json only if something was published.
+8. Commit `channels/<channel>/story.json` + the episode's json files and push.
+9. If TikTok is in draft mode/unconfigured or YouTube is audit-locked, send `out/final.mp4` to the user with SendUserFile (status proactive).
+10. Report in 3-5 lines: what the votes decided, cameos, links, failures, token-expiry warnings.
+
+## Theo notes
+- Story: Pixie (online girlfriend) lands Day 100; the 8 lies; secret Nina reveal. See `channels/theo/bible.json`.
+- Pick the most-liked comment that's doable, safe, kind and not a repeat. Bend funny off-theme ones to fit. Nothing usable → backlog.
+- At least one `transform` per episode; keep continuity with `story.theo_state`.
+
+### Theo episode.json schema
 
 ```json
 {
@@ -89,7 +96,7 @@ before writing anything.
 - Need a new trait, outfit, background or prop for a story beat? Add it to `render/` (keep the same flat style, 9px ink outlines), preview it, then use it.
 
 ## Hard rules
-- Follow `bible.safety_rules` and `bible.cameo_rules` exactly. Never use anything about a commenter except their public handle.
-- Never post anything except through `scripts/publish.py`. Never delete or edit past uploads.
-- One episode per day. If today's episode is already published (`published.json` has entries for it), don't make another.
-- Don't commit secrets, `models/`, or `episodes/*/out/`.
+- Follow each bible's safety and cameo rules exactly. Never use anything about a commenter except their public handle.
+- Post only via `scripts/publish.py`. Never delete or edit past uploads. One episode per channel per day.
+- Credentials are per channel (`<PREFIX>_YT_REFRESH_TOKEN`, ...). Never copy one channel's keys to another.
+- Never add echo/reverb to voices (it sounds robotic). Don't commit secrets, `models/`, or `episodes/*/out/`.

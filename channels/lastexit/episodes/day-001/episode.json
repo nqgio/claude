@@ -1,0 +1,182 @@
+{
+  "day": 1,
+  "part": 1,
+  "title": "The Trunk",
+  "summary": "You owe $40k; a stranger pays you $10k to drive a car across town, don't open the trunk; the trunk knocks and says your name.",
+  "hud": {
+    "cash": -40000,
+    "heat": 5,
+    "trust": 50
+  },
+  "characters": {
+    "you": {
+      "skin": "#e0a979",
+      "hair": "beanie",
+      "hair_color": "#2b2d33",
+      "unibrow": false,
+      "brows": "groomed",
+      "acne": 0,
+      "eye_bags": true,
+      "glasses": "none",
+      "nose_hair": false,
+      "facial_hair": "patchy",
+      "teeth": "white",
+      "body": "average",
+      "outfit": "hoodie",
+      "outfit_color": "#7a1f2b",
+      "smelly": false,
+      "posture": "straight"
+    },
+    "stranger": {
+      "skin": "#c98e62",
+      "hair": "bald",
+      "hair_color": "#1f1611",
+      "unibrow": false,
+      "brows": "groomed",
+      "acne": 0,
+      "eye_bags": false,
+      "glasses": "shades",
+      "nose_hair": false,
+      "facial_hair": "goatee",
+      "teeth": "white",
+      "body": "fit",
+      "outfit": "suit",
+      "smelly": false,
+      "posture": "straight",
+      "accessories": [
+        "chain"
+      ]
+    }
+  },
+  "scenes": [
+    {
+      "bg": "street",
+      "actors": {
+        "you": {
+          "x": 600,
+          "s": 1.05,
+          "expression": "sad"
+        }
+      },
+      "say": "You owe *forty thousand* dollars. To the wrong people."
+    },
+    {
+      "bg": "lot",
+      "actors": {
+        "stranger": {
+          "x": 300,
+          "s": 0.95,
+          "expression": "smug"
+        },
+        "you": {
+          "x": 800,
+          "s": 0.95,
+          "expression": "neutral"
+        }
+      },
+      "hud": {
+        "cash": -30000,
+        "heat": 5,
+        "trust": 50
+      },
+      "say": "Then a stranger offers you *ten grand*. To drive one car across the city."
+    },
+    {
+      "bg": "lot",
+      "speaker": "stranger",
+      "actors": {
+        "stranger": {
+          "x": 540,
+          "s": 1.2,
+          "expression": "determined"
+        }
+      },
+      "zoom": 0.1,
+      "say": "One rule. Don't open the *trunk*."
+    },
+    {
+      "bg": "car",
+      "actors": {
+        "you": {
+          "x": 600,
+          "y": 2050,
+          "s": 1.25,
+          "expression": "determined"
+        }
+      },
+      "sfx": [
+        {
+          "name": "knock",
+          "at": 1.4
+        }
+      ],
+      "say": "Halfway there, the trunk starts *knocking*."
+    },
+    {
+      "bg": "car",
+      "actors": {
+        "you": {
+          "x": 600,
+          "y": 2050,
+          "s": 1.25,
+          "expression": "shocked"
+        }
+      },
+      "shake": true,
+      "flash": true,
+      "sfx": [
+        "knock",
+        {
+          "name": "heartbeat",
+          "at": 1.0
+        }
+      ],
+      "hud": {
+        "cash": -30000,
+        "heat": 15,
+        "trust": 50
+      },
+      "say": "Three knocks. Then a voice says your *name*."
+    },
+    {
+      "bg": "car",
+      "actors": {
+        "you": {
+          "x": 600,
+          "y": 2050,
+          "s": 1.25,
+          "expression": "sad"
+        }
+      },
+      "zoom": 0.12,
+      "say": "Do you open the trunk? Or keep *driving*?"
+    }
+  ],
+  "cta": {
+    "question_lines": [
+      "OPEN THE TRUNK",
+      "OR KEEP DRIVING?"
+    ],
+    "options": [
+      {
+        "label": "Open the trunk",
+        "color": "#e8384f",
+        "keywords": [
+          "open",
+          "trunk",
+          "a"
+        ]
+      },
+      {
+        "label": "Keep driving",
+        "color": "#2f9e6b",
+        "keywords": [
+          "drive",
+          "driving",
+          "keep",
+          "b"
+        ]
+      }
+    ]
+  }
+}

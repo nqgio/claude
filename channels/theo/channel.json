@@ -1,0 +1,16 @@
+{
+  "name": "Theo Has 100 Days",
+  "style": "theo",
+  "env_prefix": "THEO",
+  "music": "bouncy",
+  "music_gain": 0.28,
+  "intro": 0.35,
+  "scene_gap": 0.1,
+  "cta_len": 2.6,
+  "tags": [
+    "glow up",
+    "animation",
+    "theo has 100 days",
+    "storytime"
+  ]
+}

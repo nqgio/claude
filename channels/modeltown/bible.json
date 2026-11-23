@@ -1,0 +1,38 @@
+{
+  "series_title": "The Model Town",
+  "suggested_handle": "@themodeltown",
+  "logline": "A tiny town under glass. A giant hand shows you, one rule at a time, how the systems around you are built to steer you: casinos, scams, apps, stores, cults.",
+  "format": {
+    "length_seconds": "20-30",
+    "topic_structure": "One topic = 5-8 rules. Day 1 of a topic: hook + 'they just need N rules' + rule 1. Each next day: one rule, demonstrated in the town. Final day of a topic: recap all rules in a fast montage + ask the comments to pick the next topic.",
+    "demonstration": "Every rule must be SHOWN: the hand changes something in the town (removes the clock, bricks the windows, swaps money for chips, adds a near-miss light...). Add new town props in render/players/diorama.js when a rule needs one.",
+    "narration_style": "Calm, confident, slightly ominous. Short declarative sentences. 'Nobody forces you to stay. They just need seven rules.' One keyword per sentence in *asterisks* (yellow highlight).",
+    "accuracy": "Every rule must be a real, well-documented technique. No made-up statistics. Don't name real companies; describe the industry."
+  },
+  "voices": {
+    "_note": "Calm explainer: am_echo blended with am_fenrir. Never add echo/reverb to voices.",
+    "narrator": { "voice": "am_echo:0.6,am_fenrir:0.4", "speed": 1.08 }
+  },
+  "voting_rules": {
+    "how": "On the last day of a topic, the most-liked comment naming a system/industry picks the next topic. During a topic, comments can request 'show it with X' and the best one can be used as a demonstration.",
+    "fallback": "Next item in topic_backlog."
+  },
+  "topic_backlog": [
+    { "topic": "How casinos keep you playing", "rules": ["Take away time (no clocks, no windows)", "Swap money for chips", "Make you walk past everything (maze layouts)", "Near misses feel like almost winning", "Free drinks, loose judgment", "Celebrate small wins loudly", "Make leaving feel like losing (comps, status tiers)"] },
+    { "topic": "How scammers get your money", "rules": ["Create urgency", "Impersonate authority", "Isolate you from advice", "Ask for small first", "Pick untraceable payment", "Recycle victims ('recovery' scams)"] },
+    { "topic": "How apps steal your attention", "rules": ["Infinite feed (no stopping point)", "Variable rewards", "Red notification badges", "Streaks", "Autoplay", "Social proof counters"] },
+    { "topic": "How supermarkets make you spend more", "rules": ["Essentials at the back", "Eye level is buy level", "Music tempo", "Bigger carts", "Fake sales with anchor prices", "Checkout impulse aisle"] },
+    { "topic": "How cults recruit", "rules": ["Love bombing", "Us vs them", "Slow escalation of commitment", "Control information", "Sleep and time pressure", "Make leaving cost everything"] }
+  ],
+  "safety_rules": [
+    "Educational and protective framing: the point is to help viewers recognize manipulation.",
+    "No partisan politics, no real people, no real company names, no medical/financial advice."
+  ],
+  "scene_types": {
+    "town": "{clock: bool, windows: open|bricked, casino: bool}: persistent changes go in episode 'town', per-scene in scene 'town'",
+    "hand": "{pose: hover|point|pinch, from:[x,y], to:[x,y], held: clock|brick|null, tap: bool, move: seconds}; fingertip roughly at (x, y+150)",
+    "plaque": "text on the gold plaque (e.g. '7 RULES', 'RULE 1')",
+    "people": "walk | loop (circling the casino)",
+    "focus": "[x,y] zoom center; zoom: amount (default 0.04)"
+  }
+}

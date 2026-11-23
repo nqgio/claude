@@ -1,0 +1,31 @@
+{
+  "day": 1,
+  "title": "The 3:17 Visitor",
+  "part": 1,
+  "parts": 4,
+  "clock": "3:17 AM",
+  "clock_short": "3:17",
+  "clock_cam": "03:17",
+  "place": "Your house",
+  "summary": "Doorbell rings at 3:17 every night; tonight the camera shows someone wearing your clothes.",
+  "you_color": "#4a5a8a",
+  "scenes": [
+    { "bg": "bedroom", "figure": { "pose": "stand", "x": 360, "y": 1560, "s": 1.5 }, "sfx": [{ "name": "doorbell", "at": 0.3 }],
+      "say": "Every night at *3:17*, your doorbell rings." },
+    { "bg": "doorcam", "visitor": "none",
+      "say": "You check the camera. *Nobody's* there. Every single time." },
+    { "bg": "hallway", "figure": { "pose": "walk", "x": 540, "y": 1700, "s": 1.7 }, "sfx": ["doorbell", { "name": "doorbell", "at": 1.0 }],
+      "say": "But tonight, it rang *twice*." },
+    { "bg": "doorcam", "visitor": "far", "flash": true, "sfx": ["glitch", { "name": "heartbeat", "at": 0.6 }],
+      "say": "And this time, someone was *standing* there." },
+    { "bg": "doorcam", "visitor": "you", "flash": true, "sfx": ["boom"],
+      "say": "Wearing your hoodie. Your shoes. Your *face*." },
+    { "bg": "door", "visitor": "feet", "figure": { "pose": "scared", "x": 540, "y": 1840, "s": 1.9 }, "sfx": [{ "name": "knock", "at": 0.4 }],
+      "say": "Then it *knocked*. Do you open the door? Or do you call someone?" }
+  ],
+  "cta": {
+    "question_lines": ["OPEN THE DOOR", "OR CALL SOMEONE?"],
+    "options": [ { "label": "Open it", "color": "#2f6fe0", "keywords": ["open", "a"] }, { "label": "Call someone", "color": "#e8384f", "keywords": ["call", "b"] } ],
+    "prompt": "COMMENT A OR B"
+  }
+}

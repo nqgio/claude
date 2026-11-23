@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Pull comments from the most recent published episode, rank them, and flag cameo requests.
 
-Usage: python3 scripts/fetch_comments.py            -> writes episodes/day-NNN/inbox.json for the NEXT day
-Claude reads inbox.json, applies the voting + cameo rules from series/bible.json, and writes the next episode.
+Usage: python3 scripts/fetch_comments.py <channel>   (e.g. theo, pickwrong)
+  -> writes channels/<channel>/episodes/day-NNN/inbox.json for the NEXT day
+Claude reads inbox.json, applies the voting + cameo rules from the channel's bible.json, and writes the next episode.
+For choice channels (story.pending_choice set) it also tallies A/B votes into inbox["choice_tally"].
 """
 import json, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from platforms import youtube, instagram  # noqa: E402
-
-ROOT = Path(__file__).resolve().parent.parent
+import channel as chmod  # noqa: E402
 
 END = r"\s*(?:[?.!,]|$|\b(?:for|in|pl[sz]|please|and|so|to|who|that|lol|lmao|haha|bc|because)\b)"
 CAMEO_PATTERNS = [
@@ -35,8 +35,24 @@ def cameo_role(text):
     return None
 
 
+def tally(comments, options):
+    counts = [0] * len(options)
+    for c in comments:
+        t = " " + re.sub(r"[^a-z0-9 ]", " ", c["text"].lower()) + " "
+        for i, o in enumerate(options):
+            kws = [k.lower() for k in o.get("keywords", [])] + [o["label"].lower()]
+            if any((" " + k + " ") in t if len(k) <= 2 else k in t for k in kws):
+                counts[i] += 1
+                break
+    total = sum(counts) or 1
+    return [{"label": o["label"], "votes": n, "percent": round(100 * n / total)} for o, n in zip(options, counts)]
+
+
 def main():
-    story = json.loads((ROOT / "series/story.json").read_text())
+    ch = chmod.channel_dir(sys.argv[1] if len(sys.argv) > 1 else "theo")
+    cfg, story = chmod.load(ch)["channel"], chmod.load(ch)["story"]
+    chmod.use_credentials(cfg)
+    from platforms import youtube, instagram  # noqa: E402
     if not story["episodes"]:
         print("No published episodes yet; nothing to fetch.")
         return
@@ -52,13 +68,16 @@ def main():
         c["handle_ok"] = not BAD_HANDLE.search(c["author"]) and len(c["author"]) <= 31
     comments.sort(key=lambda c: (c["likes"], c["replies"]), reverse=True)
     day = story["next_day"]
-    out_dir = ROOT / f"episodes/day-{day:03d}"
+    out_dir = ch / f"episodes/day-{day:03d}"
     out_dir.mkdir(parents=True, exist_ok=True)
     inbox = {
         "for_day": day, "source_day": last["day"], "total": len(comments),
         "top": comments[:40],
         "cameo_requests": [c for c in comments if c["cameo_role"]][:20],
     }
+    if story.get("pending_choice"):
+        inbox["choice_tally"] = tally(comments, story["pending_choice"]["options"])
+        print("vote split:", ", ".join(f"{x['label']} {x['percent']}% ({x['votes']})" for x in inbox["choice_tally"]))
     (out_dir / "inbox.json").write_text(json.dumps(inbox, indent=2, ensure_ascii=False))
     print(f"{len(comments)} comments -> {out_dir / 'inbox.json'}")
     for c in comments[:10]:

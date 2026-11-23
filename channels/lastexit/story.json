@@ -1,0 +1,8 @@
+{
+  "next_day": 1,
+  "season": 1,
+  "stats": { "cash": -40000, "heat": 5, "trust": 50 },
+  "pending_choice": null,
+  "choices_made": [],
+  "episodes": []
+}

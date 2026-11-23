@@ -4,6 +4,7 @@ import shutil, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import channel as chmod  # noqa: E402
 from platforms import youtube, instagram, tiktok  # noqa: E402
 from platforms.common import req  # noqa: E402
 
@@ -28,8 +29,11 @@ try:
 except ImportError as e:
     check("python packages", False, f"bash scripts/bootstrap.sh ({e})")
 
-print("Platforms (optional, any subset works)")
-for mod, test in [(youtube, lambda: youtube.my_channel_id()),
+for ch in chmod.all_channels():
+  cfg = chmod.load(ch)["channel"]
+  chmod.use_credentials(cfg)
+  print(f"Platforms for {cfg['name']} (keys prefixed {cfg['env_prefix']}_; any subset works)")
+  for mod, test in [(youtube, lambda: youtube.my_channel_id()),
                   (instagram, lambda: req("GET", f"{instagram.API}/me?fields=username&access_token={instagram._e()['IG_ACCESS_TOKEN']}").json()["username"]),
                   (tiktok, lambda: tiktok._token() and "token ok")]:
     if not mod.configured():

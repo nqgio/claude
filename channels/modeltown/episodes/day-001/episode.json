@@ -1,0 +1,144 @@
+{
+  "day": 1,
+  "topic": "How casinos keep you playing",
+  "progress": "RULE 1/7",
+  "summary": "Intro to casinos topic + rule 1: take away time.",
+  "town": {
+    "clock": true,
+    "windows": "open"
+  },
+  "scenes": [
+    {
+      "plaque": "",
+      "hand": {
+        "pose": "hover",
+        "from": [
+          760,
+          100
+        ],
+        "to": [
+          640,
+          400
+        ],
+        "move": 1.4
+      },
+      "say": "Nobody *forces* you to stay in a casino."
+    },
+    {
+      "plaque": "7 RULES",
+      "plaque_pulse": true,
+      "hand": {
+        "pose": "point",
+        "from": [
+          640,
+          400
+        ],
+        "to": [
+          600,
+          370
+        ],
+        "tap": true
+      },
+      "sfx": [
+        "ding"
+      ],
+      "say": "They don't need locks. They just need *seven* rules."
+    },
+    {
+      "plaque": "RULE 1",
+      "hand": {
+        "pose": "pinch",
+        "from": [
+          600,
+          380
+        ],
+        "to": [
+          410,
+          790
+        ],
+        "move": 1.0
+      },
+      "focus": [
+        380,
+        930
+      ],
+      "zoom": 0.12,
+      "say": "Rule one. Take away *time*."
+    },
+    {
+      "plaque": "RULE 1",
+      "town": {
+        "clock": false
+      },
+      "hand": {
+        "pose": "pinch",
+        "held": "clock",
+        "from": [
+          410,
+          790
+        ],
+        "to": [
+          860,
+          260
+        ],
+        "move": 0.9
+      },
+      "sfx": [
+        "pop"
+      ],
+      "focus": [
+        380,
+        930
+      ],
+      "zoom": 0.08,
+      "say": "No clocks."
+    },
+    {
+      "plaque": "RULE 1",
+      "town": {
+        "clock": false,
+        "windows": "bricked"
+      },
+      "hand": {
+        "pose": "point",
+        "from": [
+          860,
+          260
+        ],
+        "to": [
+          640,
+          780
+        ],
+        "tap": true
+      },
+      "sfx": [
+        "stamp"
+      ],
+      "focus": [
+        600,
+        1170
+      ],
+      "zoom": 0.14,
+      "say": "No *windows*. The lights never change."
+    },
+    {
+      "plaque": "RULE 1",
+      "town": {
+        "clock": false,
+        "windows": "bricked"
+      },
+      "people": "loop",
+      "focus": [
+        600,
+        1200
+      ],
+      "zoom": 0.1,
+      "say": "So your brain never gets the signal that it's *late*. And you keep playing."
+    }
+  ],
+  "cta": {
+    "line1": "RULE 2 TOMORROW",
+    "line2": "Comment which system we break down next",
+    "line3": "scams \u00b7 apps \u00b7 supermarkets \u00b7 cults"
+  }
+}
