@@ -58,6 +58,30 @@ def polish(audio):
         return sf.read(o, dtype="float32")[0]
 
 
+def tighten_pauses(audio, max_pause=0.07, floor_db=-38):
+    """Shorten silences between words/phrases so narration flows continuously (no audio effects applied)."""
+    hop = int(0.005 * SR)
+    n = len(audio) // hop
+    if n == 0:
+        return audio
+    frames = audio[: n * hop].reshape(n, hop)
+    db = 20 * np.log10(np.sqrt(np.mean(frames ** 2, axis=1)) + 1e-7)
+    quiet = db < (db.max() + floor_db)
+    keep = int(max_pause / 0.005)
+    out, i = [], 0
+    while i < n:
+        j = i
+        while j < n and quiet[j] == quiet[i]:
+            j += 1
+        seg = frames[i:j].reshape(-1)
+        if quiet[i] and (j - i) > keep:
+            half = keep * hop // 2
+            seg = np.concatenate([seg[:half], seg[-half:]])
+        out.append(seg)
+        i = j
+    return np.concatenate(out + [audio[n * hop:]]).astype(np.float32)
+
+
 def mouth_envelope(audio, n_frames):
     hop = SR / FPS
     env = []
@@ -192,10 +216,12 @@ def build(ep_dir: Path, preview=False):
             vkey = speaker if speaker in voices else "narrator"
         v = voices[vkey]
         audio = tts(sc["say"], v["voice"], v["speed"])
+        if v.get("tighten", True):
+            audio = tighten_pauses(audio)
         if v.get("polish"):
             audio = polish(audio)
         dur = len(audio) / SR
-        tail = 0.28
+        tail = 0.1
         tr = None
         if sc.get("transform"):
             tail = 1.6

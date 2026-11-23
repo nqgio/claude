@@ -50,41 +50,42 @@
       "PAYOFF: reaction, a running-gag callback (Deb, Brett, Nina, or the bet).",
       "CTA: 'Top comment decides Day N+1' + cameo invite."
     ],
-    "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
+    "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'.",
+    "narration_style": "Hype storyteller, like the top faceless channels: short punchy fragments, rhetorical questions, exclamations, no filler. e.g. 'Look at him. Two years! And this morning? She booked a flight.' Keep the energy up the whole way."
   },
   "voices": {
-    "_note": "Blends ('a:0.6,b:0.4') keep voice a's sound and pitch while borrowing b's smoother flow. Chosen by measured pitch + smoothness. Don't use plain am_michael/af_bella/af_nicole/am_onyx/bf_* alone (choppy). Tempo 1.05.",
+    "_note": "Matched to the reference narrator (deep ~107 Hz, animated, fast, no gaps): narrator = am_puck at 1.2x, pauses tightened. Blends ('a:0.6,b:0.4') keep voice a's sound. Never add echo/reverb to voices. Write narration punchy: short sentences, '!' and '?', fragments.",
     "narrator": {
-      "voice": "am_michael:0.6,am_puck:0.4",
-      "speed": 1.05
+      "voice": "am_puck",
+      "speed": 1.2
     },
     "theo": {
-      "voice": "am_puck",
-      "speed": 1.05
+      "voice": "am_liam",
+      "speed": 1.12
     },
     "deb": {
       "voice": "af_sarah:0.7,af_kore:0.3",
-      "speed": 1.05
+      "speed": 1.1
     },
     "brett": {
-      "voice": "am_eric:0.7,am_liam:0.3",
-      "speed": 1.05
+      "voice": "am_fenrir",
+      "speed": 1.1
     },
     "nina": {
       "voice": "af_heart:0.7,af_jessica:0.3",
-      "speed": 1.05
+      "speed": 1.1
     },
     "pixie": {
       "voice": "af_bella:0.6,af_jessica:0.4",
-      "speed": 1.05
+      "speed": 1.1
     },
     "guest_m": {
       "voice": "am_adam:0.7,am_liam:0.3",
-      "speed": 1.05
+      "speed": 1.1
     },
     "guest_f": {
       "voice": "af_nova",
-      "speed": 1.05
+      "speed": 1.1
     }
   },
   "cast": {

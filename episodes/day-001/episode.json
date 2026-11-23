@@ -1,6 +1,9 @@
 {
   "day": 1,
-  "title": ["SHE BOOKED", "THE FLIGHT"],
+  "title": [
+    "SHE BOOKED",
+    "THE FLIGHT"
+  ],
   "accent": "#ff6fb5",
   "summary": "Pixie, Theo's online girlfriend of 2 years, booked a flight to meet him in 100 days. Everything he told her about himself is a lie.",
   "chosen_comment": null,
@@ -9,45 +12,76 @@
     {
       "bg": "basement",
       "speaker": "narrator",
-      "theo": { "expression": "happy" },
-      "say": "This is Theo. For two years, he's been dating a girl named Pixie. They met in an online game. They've never seen each other's faces."
+      "theo": {
+        "expression": "happy"
+      },
+      "say": "This is Theo. Twenty three. Lives in his mom's basement. And for two years? He's had a girlfriend he has never seen!"
     },
     {
       "bg": "basement",
       "speaker": "narrator",
-      "theo": { "expression": "shocked" },
+      "theo": {
+        "expression": "shocked"
+      },
       "texts": [
-        { "from": "pixie", "text": "guess what" },
-        { "from": "pixie", "text": "i booked my flight" },
-        { "from": "pixie", "text": "100 days. i finally get to meet you", "heart": true }
+        {
+          "from": "pixie",
+          "text": "guess what"
+        },
+        {
+          "from": "pixie",
+          "text": "i booked my flight"
+        },
+        {
+          "from": "pixie",
+          "text": "100 days. i finally get to meet you",
+          "heart": true
+        }
       ],
-      "say": "This morning, she texted him. She booked a flight. One hundred days from now, she's coming to meet him."
+      "say": "Her name is Pixie. They met in an online game. And this morning? She booked a flight!"
     },
     {
       "bg": "basement",
       "speaker": "narrator",
-      "theo": { "expression": "sad" },
-      "say": "One problem. Theo told her he's a six foot two firefighter, with abs, who plays guitar, speaks French, and has his own apartment."
+      "theo": {
+        "expression": "sad"
+      },
+      "say": "One hundred days. Then she lands. And here's the problem. Theo told her he's six foot two! A firefighter! With abs! Plays guitar, speaks French, has his own apartment!"
     },
     {
       "bg": "basement",
       "speaker": "deb",
-      "others": [ { "who": "deb", "expression": "happy" } ],
-      "theo": { "expression": "shocked" },
-      "say": "Theo! Is that a GIRL? Is she real? Should I make a lasagna?"
+      "others": [
+        {
+          "who": "deb",
+          "expression": "happy"
+        }
+      ],
+      "theo": {
+        "expression": "shocked"
+      },
+      "say": "Theo! Is that a girl? Is she real? Should I make a lasagna?"
     },
     {
       "bg": "basement",
       "speaker": "theo",
-      "theo": { "expression": "determined" },
+      "theo": {
+        "expression": "determined"
+      },
       "say": "Okay okay okay. A hundred days to make every lie true. I can't do this alone."
     },
     {
       "bg": "basement",
-      "speaker": "theo",
-      "theo": { "expression": "happy", "pose": "wave" },
-      "say": "Top comment picks what I fix tomorrow. Want to be in it? Tell me who you'd be."
+      "speaker": "narrator",
+      "theo": {
+        "expression": "happy",
+        "pose": "wave"
+      },
+      "say": "So you decide! Top comment picks what Theo fixes tomorrow. Want to be in it? Comment who you'd be!"
     }
   ],
-  "cta": ["TOP COMMENT DECIDES", "DAY 2"]
+  "cta": [
+    "TOP COMMENT DECIDES",
+    "DAY 2"
+  ]
 }
