@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """Checks that everything needed for a daily run is in place. Read-only (doesn't post anything)."""
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import shutil, subprocess, sys
 from pathlib import Path
 

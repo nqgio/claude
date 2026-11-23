@@ -21,7 +21,7 @@ def channel_dir(path):
 
 
 def load(ch):
-    return {n: json.loads((ch / f"{n}.json").read_text()) for n in ("channel", "bible", "story")}
+    return {n: json.loads((ch / f"{n}.json").read_text(encoding="utf-8")) for n in ("channel", "bible", "story")}
 
 
 def use_credentials(channel_cfg):

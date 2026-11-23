@@ -23,6 +23,13 @@ import time
 import urllib.parse
 from pathlib import Path
 
+# Windows: run everything in Python UTF-8 mode (story files contain emoji/curly quotes)
+if os.name == "nt" and not sys.flags.utf8_mode:
+    os.environ["PYTHONUTF8"] = "1"
+    sys.exit(subprocess.call([sys.executable, "-X", "utf8", *sys.argv]))
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 ROOT = Path(__file__).resolve().parent.parent
 BOT = ROOT / "bot"
 ENV = ROOT / ".env"
@@ -32,12 +39,13 @@ LOGS = BOT / "logs"
 CLIENT_SECRET = BOT / "client_secret.json"
 PORT = int(os.environ.get("BOT_PORT", "8765"))
 PY = sys.executable
+PY_NAME = "python" if os.name == "nt" else "python3"   # what Claude should type in its shell
 YT_SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.force-ssl"]
 
 # ---------------------------------------------------------------- storage
 def read_json(p, default):
     try:
-        return json.loads(p.read_text())
+        return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return default
 
@@ -49,7 +57,7 @@ def write_json(p, data):
 def read_env():
     out = {}
     if ENV.exists():
-        for line in ENV.read_text().splitlines():
+        for line in ENV.read_text(encoding="utf-8").splitlines():
             if "=" in line and not line.strip().startswith("#"):
                 k, v = line.split("=", 1)
                 out[k.strip()] = v.strip()
@@ -74,7 +82,7 @@ def channels():
     out = []
     order = ["theo", "pickwrong", "modeltown", "lastexit", "inthistown"]
     for cj in sorted((ROOT / "channels").glob("*/channel.json"), key=lambda p: (order.index(p.parent.name) if p.parent.name in order else 99, p.parent.name)):
-        c = json.loads(cj.read_text())
+        c = json.loads(cj.read_text(encoding="utf-8"))
         c["id"] = cj.parent.name
         out.append(c)
     return out
@@ -105,12 +113,12 @@ def checks():
     node_pw = subprocess.run(["node", "-e", "require('playwright')"], cwd=ROOT, capture_output=True).returncode == 0 if which("node") else False
     return [
         ("Python packages", all(py_has(m) for m in ("kokoro_onnx", "soundfile", "numpy", "requests", "flask", "google_auth_oauthlib")), "python3 bot/bot.py setup"),
-        ("Node.js 18+", which("node"), "Install from nodejs.org (or: brew install node)"),
+        ("Node.js 18+", which("node"), "Windows: winget install OpenJS.NodeJS.LTS · or nodejs.org"),
         ("Playwright + Chromium", node_pw, "python3 bot/bot.py setup"),
-        ("ffmpeg", which("ffmpeg"), "macOS: brew install ffmpeg · Windows: winget install ffmpeg · Linux: apt install ffmpeg"),
+        ("ffmpeg", which("ffmpeg"), "Windows: winget install Gyan.FFmpeg, then reopen this window · macOS: brew install ffmpeg"),
         ("Voice model", (ROOT / "models/kokoro-v1.0.onnx").exists() and (ROOT / "models/voices-v1.0.bin").exists(), "python3 bot/bot.py setup"),
         ("Claude Code CLI", which("claude"), "npm install -g @anthropic-ai/claude-code, then run `claude` once to log in"),
-    ]
+    ] + ([("Git for Windows (Claude Code needs it)", which("git") and which("bash"), "winget install Git.Git, then reopen this window")] if os.name == "nt" else [])
 
 
 def setup():
@@ -149,14 +157,14 @@ SAFE_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep",
 
 def job_prompt(ch, mode, report):
     common = (f"You are running unattended from the local Shorts Bot on the user's computer. Channel: `{ch}` (folder channels/{ch}). "
-              f"Read CLAUDE.md and channels/{ch}/bible.json first. Use `{Path(PY).name}` for Python. Skip `bash scripts/bootstrap.sh` (the bot already set up this machine). "
+              f"Read CLAUDE.md and channels/{ch}/bible.json first. Use `{PY_NAME}` for Python (this computer is {'Windows' if os.name == 'nt' else 'Mac/Linux'}). Skip `bash scripts/bootstrap.sh` (the bot already set up this machine). "
               f"Do not use SendUserFile or ask questions; nobody is watching. If something fails, fix it if you can, otherwise stop. ")
     git = "Commit the channel's story.json and episode json files locally" + (" and push." if config()["push"] else "; do NOT push.")
     if mode == "preview":
         task = ("Do runbook steps 2-6 only: fetch comments (if the channel has published episodes), write the next episode.json if it doesn't exist, "
                 "preview, fix, and render the final video. Do NOT publish and do NOT change story.json. ")
     else:
-        task = (f"Do the full DAILY RUNBOOK (steps 1-8 and 10) for this channel, today. Step 1: run `{Path(PY).name} scripts/check_setup.py`; if this channel has no platform connected, stop. "
+        task = (f"Do the full DAILY RUNBOOK (steps 1-8 and 10) for this channel, today. Step 1: run `{PY_NAME} scripts/check_setup.py`; if this channel has no platform connected, stop. "
                 f"If today's episode was already published (its published.json has entries), stop. {git} ")
     return common + task + f"Finish by writing your 3-5 line report (plain text) to {report}."
 
@@ -167,15 +175,16 @@ def run_job(ch, mode):
     log = LOGS / f"{ch}_{mode}_{stamp}.log"
     report = LOGS / f"{ch}_{mode}_{stamp}.report.txt"
     cfg = config()
-    cmd = ["claude", "-p", job_prompt(ch, mode, report), "--output-format", "text"]
+    claude = shutil.which("claude") or "claude"   # on Windows this finds claude.cmd / claude.exe
+    cmd = [claude, "-p", job_prompt(ch, mode, report), "--output-format", "text"]
     if cfg["permission"] == "full":
         cmd.append("--dangerously-skip-permissions")
     else:
         cmd += ["--permission-mode", "acceptEdits", "--allowedTools", *SAFE_TOOLS]
-    env = dict(os.environ, **read_env(), BOT_MODE="1")
+    env = dict(os.environ, **read_env(), BOT_MODE="1", PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
     update_state(ch, status="running", mode=mode, started=stamp, log=log.name, report=None)
     t0 = time.time()
-    with open(log, "w") as fh:
+    with open(log, "w", encoding="utf-8") as fh:
         fh.write(f"$ claude -p <runbook prompt for {ch}, mode={mode}>\n\n"); fh.flush()
         try:
             rc = subprocess.run(cmd, cwd=ROOT, env=env, stdout=fh, stderr=subprocess.STDOUT, timeout=3 * 3600, shell=False).returncode
@@ -183,7 +192,7 @@ def run_job(ch, mode):
             fh.write("Claude Code CLI not found. Install it: npm install -g @anthropic-ai/claude-code\n"); rc = 127
         except subprocess.TimeoutExpired:
             fh.write("\nTimed out after 3 hours.\n"); rc = 124
-    rep = report.read_text() if report.exists() else ""
+    rep = report.read_text(encoding="utf-8", errors="replace") if report.exists() else ""
     update_state(ch, status="ok" if rc == 0 else f"failed ({rc})", minutes=round((time.time() - t0) / 60, 1),
                  report=rep.strip()[:2000], finished=dt.datetime.now().strftime("%Y-%m-%d %H:%M"))
 
@@ -376,7 +385,7 @@ def log(name):
     f = (LOGS / name).resolve()
     if f.parent != LOGS.resolve() or not f.exists():
         abort(404)
-    return page(f"<a class=btn href=/>← back</a><h2>{html.escape(name)}</h2><pre>{html.escape(f.read_text()[-200000:])}</pre>")
+    return page(f"<a class=btn href=/>← back</a><h2>{html.escape(name)}</h2><pre>{html.escape(f.read_text(encoding="utf-8", errors="replace")[-200000:])}</pre>")
 
 
 @app.post("/run/<cid>/<mode>")

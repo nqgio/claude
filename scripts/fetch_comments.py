@@ -6,6 +6,11 @@ Usage: python3 scripts/fetch_comments.py <channel>   (e.g. theo, pickwrong)
 Claude reads inbox.json, applies the voting + cameo rules from the channel's bible.json, and writes the next episode.
 For choice channels (story.pending_choice set) it also tallies A/B votes into inbox["choice_tally"].
 """
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import json, re, sys
 from pathlib import Path
 

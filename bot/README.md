@@ -6,33 +6,47 @@ Claude Code (logged in with your Claude account), which follows the daily runboo
 reads yesterday's comments → writes the episode → renders the video → posts it → posts the vote comment
 → replies to the winner and cameos.
 
-## 1. Install the basics (once)
+## 1. Install the basics (once): Windows
 
-| Need | Mac | Windows |
-|---|---|---|
-| Python 3.10+ | `brew install python` (or python.org) | python.org (tick "Add to PATH") |
-| Node.js 18+ | `brew install node` (or nodejs.org) | nodejs.org |
-| ffmpeg | `brew install ffmpeg` | `winget install ffmpeg` |
-| Claude Code | `npm install -g @anthropic-ai/claude-code`, then run `claude` once and log in | same |
-| Git | already on Mac | git-scm.com |
+Open **PowerShell** (Start menu → type "PowerShell") and paste these one at a time:
 
-No Homebrew on Mac? Install it from brew.sh, or use the installers from each website.
-
-## 2. Get the project onto your computer
-
-```bash
-git clone https://github.com/nqgio/claude.git shorts-bot
-cd shorts-bot
-git checkout claude/pensive-goldberg-w7ypzy    # until this branch is merged into main
+```powershell
+winget install Python.Python.3.12
+winget install OpenJS.NodeJS.LTS
+winget install Gyan.FFmpeg
+winget install Git.Git
 ```
+
+**Close PowerShell and open a new one** (so it sees the new programs), then install Claude Code and log in:
+
+```powershell
+npm install -g @anthropic-ai/claude-code
+claude
+```
+
+`claude` opens a login. Sign in with your Claude account, then type `/exit`.
+(Claude Code on Windows needs Git for Windows, which is why it's in the list.)
+
+No winget? Download the installers instead: python.org (tick **"Add python.exe to PATH"**), nodejs.org (LTS),
+git-scm.com, and ffmpeg from gyan.dev (add its `bin` folder to PATH).
+
+<details><summary>Mac instead</summary>
+
+`brew install python node ffmpeg`, then `npm install -g @anthropic-ai/claude-code` and run `claude` once to log in.
+Start the bot by right-clicking `start-mac.command` → Open.
+</details>
+
+## 2. Unzip the project
+
+Unzip `shorts-bot.zip` somewhere permanent, e.g. `Documents\shorts-bot`. Don't run it from inside the zip.
 
 ## 3. Start it
 
-- **Mac:** double-click `start-mac.command` (first time: right-click → Open, because it's downloaded).
-- **Windows:** double-click `start-windows.bat`.
-- **Or in a terminal:** `python3 bot/bot.py setup` once, then `python3 bot/bot.py`.
-
-The first start installs everything (~400 MB including the voice model) and opens **http://localhost:8765**.
+Double-click **`start-windows.bat`**.
+- If Windows says "Windows protected your PC", click **More info → Run anyway** (it's a downloaded file).
+- If the firewall asks about Python, click **Allow** (the dashboard only listens on your own computer).
+- The first start installs everything (~400 MB including the voice model), then opens **http://localhost:8765**.
+- Leave the black window open; closing it stops the bot.
 
 ## 4. Connect things in the dashboard
 
@@ -54,8 +68,8 @@ Try **Make video only** first. It writes and renders the next episode without po
 so you can watch it (click **latest video**).
 
 ## Good to know
-- **The computer has to be on and awake** at posting times with the bot running. On a Mac, use
-  System Settings → Battery/Energy → "Prevent automatic sleeping when the display is off" (on power).
+- **The computer has to be on and awake** at posting times with the bot running. On Windows:
+  Settings → System → Power → **Sleep: Never** (when plugged in). The screen can still turn off.
   If the computer was asleep at a channel's time, that channel runs as soon as the bot notices (same day).
 - **Cost:** every run uses Claude Code on your plan. Five channels a day is a fair amount of usage; start with one or two.
 - **Speed:** 2D videos take ~2 minutes to render, 3D (In This Town) ~10 minutes. Runs happen one at a time.

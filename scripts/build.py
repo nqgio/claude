@@ -6,6 +6,11 @@ Usage: python3 scripts/build.py channels/<channel>/episodes/day-001 [--preview]
 Output: <episode>/out/final.mp4 (+ timeline.json, audio.wav, stills)
 The channel folder (two levels up) holds channel.json, bible.json (voices etc.) and story.json.
 """
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import json, math, re, subprocess, sys
 from pathlib import Path
 
@@ -358,7 +363,7 @@ def word_timings(sentence, t0, dur):
 def guest_states(guests, bible):
     cast = {}
     for key, g in guests.items():
-        js = (f"const c=require('{ROOT}/render/character.js');"
+        js = (f"const c=require({json.dumps((ROOT / 'render' / 'character.js').as_posix())});"
               f"console.log(JSON.stringify(c.guestState({json.dumps(g['username'])},{json.dumps(g.get('role',''))},{json.dumps(bible.get('role_outfits', {}))})))")
         st = json.loads(subprocess.check_output(["node", "-e", js]))
         st["tag"] = g["username"] if len(g["username"]) <= 18 else g["username"][:17] + "…"
@@ -369,10 +374,10 @@ def guest_states(guests, bible):
 # ---------- main ----------
 def build(ep_dir: Path, preview=False):
     ch_dir = ep_dir.parent.parent
-    channel = json.loads((ch_dir / "channel.json").read_text())
-    bible = json.loads((ch_dir / "bible.json").read_text())
-    story = json.loads((ch_dir / "story.json").read_text())
-    ep = json.loads((ep_dir / "episode.json").read_text())
+    channel = json.loads((ch_dir / "channel.json").read_text(encoding="utf-8"))
+    bible = json.loads((ch_dir / "bible.json").read_text(encoding="utf-8"))
+    story = json.loads((ch_dir / "story.json").read_text(encoding="utf-8"))
+    ep = json.loads((ep_dir / "episode.json").read_text(encoding="utf-8"))
     out = ep_dir / "out"; out.mkdir(exist_ok=True)
     voices = bible["voices"]
     style = channel["style"]

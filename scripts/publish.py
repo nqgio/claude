@@ -7,6 +7,11 @@ Usage: python3 scripts/publish.py channels/<channel>/episodes/day-002 [--dry-run
                 and the vote comment / replies are posted on it
 Safe to re-run: finished steps are recorded in <episode>/published.json and skipped.
 """
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import json, sys
 from pathlib import Path
 
@@ -47,7 +52,7 @@ def main(ep_dir: Path, dry=False):
     cfg, bible, story = (chmod.load(ch)[k] for k in ("channel", "bible", "story"))
     chmod.use_credentials(cfg)
     from platforms import youtube, instagram, tiktok  # noqa: E402  (after credentials are set)
-    ep = json.loads((ep_dir / "episode.json").read_text())
+    ep = json.loads((ep_dir / "episode.json").read_text(encoding="utf-8"))
     video = ep_dir / "out/final.mp4"
     assert video.exists(), f"render first: {video} missing"
     assert ep["day"] == story["next_day"], f"episode is day {ep['day']} but story expects day {story['next_day']}"
@@ -56,7 +61,7 @@ def main(ep_dir: Path, dry=False):
     tags = cfg.get("tags", ["animation", "story", "shorts"])
 
     log_path = ep_dir / "published.json"
-    log = json.loads(log_path.read_text()) if log_path.exists() else {}
+    log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {}
 
     def step(key, fn):
         if key in log:
