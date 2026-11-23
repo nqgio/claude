@@ -252,7 +252,17 @@ def refresh_instagram_tokens(cfg):
 
 
 # ---------------------------------------------------------------- web app
-from flask import Flask, redirect, request, send_file, abort  # noqa: E402
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "setup":
+    setup()          # setup must work before Flask (and the rest) is installed
+    sys.exit(0)
+try:
+    from flask import Flask, redirect, request, send_file, abort  # noqa: E402
+except ImportError:
+    if __name__ != "__main__":
+        raise
+    print("First start: installing what the bot needs (one time)...\n")
+    setup()
+    sys.exit(subprocess.call([sys.executable, *(["-X", "utf8"] if os.name == "nt" else []), *sys.argv]))
 
 app = Flask(__name__)
 FLASH = {"msg": ""}

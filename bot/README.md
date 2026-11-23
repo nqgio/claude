@@ -11,7 +11,7 @@ reads yesterday's comments → writes the episode → renders the video → post
 Open **PowerShell** (Start menu → type "PowerShell") and paste these one at a time:
 
 ```powershell
-winget install Python.Python.3.12
+winget install Python.Python.3.12      # 3.12 has the best support for the voice model
 winget install OpenJS.NodeJS.LTS
 winget install Gyan.FFmpeg
 winget install Git.Git
@@ -42,7 +42,7 @@ Unzip `shorts-bot.zip` somewhere permanent, e.g. `Documents\shorts-bot`. Don't r
 
 ## 3. Start it
 
-Double-click **`start-windows.bat`**.
+Double-click **`start-windows.bat`** (inside the `shorts-bot` folder).
 - If Windows says "Windows protected your PC", click **More info → Run anyway** (it's a downloaded file).
 - If the firewall asks about Python, click **Allow** (the dashboard only listens on your own computer).
 - The first start installs everything (~400 MB including the voice model), then opens **http://localhost:8765**.
