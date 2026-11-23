@@ -24,8 +24,17 @@ def kokoro():
     return _kokoro
 
 
+def voice_style(spec):
+    """'am_michael' or a blend like 'am_michael:0.6,am_puck:0.4' (keeps the first voice's sound, borrows the others' flow)."""
+    if ":" not in spec:
+        return spec
+    parts = [p.split(":") for p in spec.split(",")]
+    total = sum(float(w) for _, w in parts)
+    return sum(float(w) / total * kokoro().get_voice_style(v.strip()) for v, w in parts)
+
+
 def tts(text, voice, speed):
-    audio, sr = kokoro().create(text, voice=voice, speed=speed, lang="en-us")
+    audio, sr = kokoro().create(text, voice=voice_style(voice), speed=speed, lang="en-us")
     assert sr == SR
     # trim leading/trailing silence
     idx = np.where(np.abs(audio) > 0.01)[0]

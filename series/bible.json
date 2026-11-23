@@ -53,9 +53,9 @@
     "headline_style": "ALL CAPS, max ~22 characters per line, 2 lines. e.g. 'THE UNIBROW' / 'IS GONE'."
   },
   "voices": {
-    "_note": "Chosen by measured pitch variation + smoothness on the full-precision Kokoro model. Avoid am_michael, af_nicole, am_onyx, bf_* (flat/choppy).",
+    "_note": "Blends ('a:0.6,b:0.4') keep voice a's sound and pitch while borrowing b's smoother flow. Chosen by measured pitch + smoothness. Don't use plain am_michael/af_bella/af_nicole/am_onyx/bf_* alone (choppy). Tempo 1.05.",
     "narrator": {
-      "voice": "am_fenrir",
+      "voice": "am_michael:0.6,am_puck:0.4",
       "speed": 1.05
     },
     "theo": {
@@ -63,23 +63,23 @@
       "speed": 1.05
     },
     "deb": {
-      "voice": "af_kore",
+      "voice": "af_sarah:0.7,af_kore:0.3",
       "speed": 1.05
     },
     "brett": {
-      "voice": "am_liam",
+      "voice": "am_eric:0.7,am_liam:0.3",
       "speed": 1.05
     },
     "nina": {
-      "voice": "af_river",
+      "voice": "af_heart:0.7,af_jessica:0.3",
       "speed": 1.05
     },
     "pixie": {
-      "voice": "af_jessica",
+      "voice": "af_bella:0.6,af_jessica:0.4",
       "speed": 1.05
     },
     "guest_m": {
-      "voice": "am_liam",
+      "voice": "am_adam:0.7,am_liam:0.3",
       "speed": 1.05
     },
     "guest_f": {
